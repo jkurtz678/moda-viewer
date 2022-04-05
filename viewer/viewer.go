@@ -15,6 +15,11 @@ type ViewerConfig struct {
 }
 
 func (v *Viewer) ShowMedia() error {
+	config, err := v.readConfig()
+	if err != nil {
+		return err
+	}
+	_ = config
 
 	return nil
 }
