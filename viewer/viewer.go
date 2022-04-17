@@ -28,7 +28,7 @@ func NewViewer() *Viewer {
 		ConfigFile:    "config.json",
 		MediaDir:      "media",
 		MetadataDir:   "metadata",
-		PlaylistDir:   "../playlist",
+		PlaylistDir:   "playlist",
 		VideoPlayer:   &VLCPlayer{},
 		PlaqueManager: &Webview{},
 	}
@@ -40,24 +40,26 @@ type ViewerConfig struct {
 }
 
 // Start will play media and show the plaque as specified by the config file
-func (v *Viewer) Start() {
+func (v *Viewer) Start() error {
 	logger.Printf("Start()")
 	config, err := v.readConfig()
 	if err != nil {
-		logger.Fatal(err)
+		return err
 	}
 
 	if config.Playlist {
-		logger.Fatal(fmt.Errorf("error - playlists not implemented"))
+		return fmt.Errorf("error - playlists not implemented")
 	}
 
 	meta, err := v.readMetadata(config.DocumentID)
 	if err != nil {
-		logger.Fatal(err)
+		return err
 	}
+	logger.Printf("play media %s", meta)
 
 	go func() {
-		err := v.playMedia(meta.DocumentID)
+		mediaPath := filepath.Join(v.MediaDir, fmt.Sprintf("%s.mp4", meta.DocumentID))
+		err = v.playMedia(mediaPath)
 		if err != nil {
 			logger.Printf("playMedia error %v", err)
 		}
@@ -65,8 +67,9 @@ func (v *Viewer) Start() {
 
 	err = v.showPlaque(meta)
 	if err != nil {
-		logger.Fatal(err)
+		return err
 	}
+	return nil
 }
 
 func (v *Viewer) readConfig() (*ViewerConfig, error) {
@@ -90,8 +93,6 @@ func (v *Viewer) readConfig() (*ViewerConfig, error) {
 }
 
 func (v *Viewer) readMetadata(documentID string) (*fstore.FirestoreTokenMeta, error) {
-	t, err := os.Getwd()
-	logger.Printf("metadata pwd: %s, err %s", t, err)
 	fileName := fmt.Sprintf("%s.json", documentID)
 	jsonFile, err := os.Open(filepath.Join(v.MetadataDir, fileName))
 	if err != nil {

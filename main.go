@@ -15,7 +15,7 @@ func main() {
 	}()
 
 	viewer := viewer.NewViewer()
-	viewer.Start()
+	log.Fatal(viewer.Start())
 }
 
 func servePlaque(w http.ResponseWriter, r *http.Request) {
