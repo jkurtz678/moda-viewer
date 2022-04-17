@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"jkurtz678/moda-viewer/fstore"
 	"path/filepath"
-	"sync"
 	"testing"
 
 	"github.com/franela/goblin"
@@ -76,24 +75,4 @@ func TestViewer(t *testing.T) {
 			g.Assert(cmp.Equal(*plaqueStub.tokenDisplayed, *testMeta)).IsTrue()
 		})
 	})
-}
-
-type VideoPlayerStub struct {
-	filepathPlayed string
-	wg             sync.WaitGroup
-}
-
-func (v *VideoPlayerStub) playMedia(filepath string) error {
-	v.filepathPlayed = filepath
-	v.wg.Done()
-	return nil
-}
-
-type PlaqueManagerStub struct {
-	tokenDisplayed *fstore.FirestoreTokenMeta
-}
-
-func (p *PlaqueManagerStub) showPlaque(tokenMeta *fstore.FirestoreTokenMeta) error {
-	p.tokenDisplayed = tokenMeta
-	return nil
 }
