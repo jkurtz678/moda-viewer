@@ -16,7 +16,7 @@ func TestViewer(t *testing.T) {
 			tmpdir := t.TempDir()
 			configPath := filepath.Join(tmpdir, "config_test.json")
 
-			testConfig := ViewerConfig{DocumentID: "1"}
+			testConfig := ViewerConfig{DocumentID: "1", Playlist: true}
 			file, err := json.Marshal(testConfig)
 			g.Assert(err).IsNil()
 
@@ -30,6 +30,7 @@ func TestViewer(t *testing.T) {
 			g.Assert(err).IsNil()
 
 			g.Assert(config.DocumentID).Equal(testConfig.DocumentID)
+			g.Assert(config.Playlist).Equal(testConfig.Playlist)
 		})
 	})
 }
