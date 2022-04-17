@@ -1,8 +1,9 @@
 package fstore
 
 type TokenMeta struct {
-	Name   string `json:"name"`
-	Artist string `json:"artist"`
+	Name        string `json:"name"`
+	Artist      string `json:"artist"`
+	Description string `json:"description"`
 }
 
 type FirestoreTokenMeta struct {

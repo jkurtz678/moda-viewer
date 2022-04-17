@@ -42,20 +42,11 @@ type ViewerConfig struct {
 // Start will play media and show the plaque as specified by the config file
 func (v *Viewer) Start() error {
 	logger.Printf("Start()")
-	config, err := v.readConfig()
+
+	meta, err := v.GetActiveTokenMeta()
 	if err != nil {
 		return err
 	}
-
-	if config.Playlist {
-		return fmt.Errorf("error - playlists not implemented")
-	}
-
-	meta, err := v.readMetadata(config.DocumentID)
-	if err != nil {
-		return err
-	}
-	logger.Printf("play media %s", meta)
 
 	go func() {
 		mediaPath := filepath.Join(v.MediaDir, fmt.Sprintf("%s.mp4", meta.DocumentID))
@@ -72,6 +63,25 @@ func (v *Viewer) Start() error {
 	return nil
 }
 
+func (v *Viewer) GetActiveTokenMeta() (*fstore.FirestoreTokenMeta, error) {
+	config, err := v.readConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	if config.Playlist {
+		return nil, fmt.Errorf("error - playlists not implemented")
+	}
+
+	meta, err := v.readMetadata(config.DocumentID)
+	if err != nil {
+		return nil, err
+	}
+
+	return meta, nil
+}
+
+// readConfig reads and returns the config file for the viewer
 func (v *Viewer) readConfig() (*ViewerConfig, error) {
 	jsonFile, err := os.Open(v.ConfigFile)
 	if err != nil {
@@ -92,6 +102,7 @@ func (v *Viewer) readConfig() (*ViewerConfig, error) {
 	return &config, err
 }
 
+// readMetadata reads and returns the metadata file for the given document id
 func (v *Viewer) readMetadata(documentID string) (*fstore.FirestoreTokenMeta, error) {
 	fileName := fmt.Sprintf("%s.json", documentID)
 	jsonFile, err := os.Open(filepath.Join(v.MetadataDir, fileName))

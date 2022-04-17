@@ -3,11 +3,87 @@
 
 <head>
     <meta charset="utf-8">
-    <title>{{.Title}}</title>
+    <title>{{.Name}}</title>
+    <script src="https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs/qrcode.min.js"></script>
 </head>
 
 <body>
-    {{.Body}}
+
+    <div class="center">
+        <div class="title"> {{.Name}}</div>
+        <div class="grid">
+            <div class="col" style="max-width: 450px;">
+                <div style="margin-bottom: 8px;">{{.Artist}}</div>
+                <div>{{.Description}}</div>
+            </div>
+            <div class="col" style="display: flex; justify-content: center;">
+                <div id="qrcode"></div>
+
+            </div>
+        </div>
+    </div>
 </body>
 
 </html>
+<script>
+    const qrcode = new QRCode(document.getElementById('qrcode'), {
+        text: 'http://jindo.dev.naver.com/collie',
+        width: 200,
+        height: 200,
+        colorDark: '#000',
+        colorLight: '#fff',
+        correctLevel: QRCode.CorrectLevel.M
+    });
+</script>
+<style>
+    html {
+        font-family: Avenir, Helvetica, Arial, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-align: center;
+    }
+
+    body {
+        margin: 0px;
+        background-color: #000000;
+        color: #FFFFFF;
+        font-size: 18px;
+    }
+
+    .center {
+        width: 100%;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        padding-left: 3rem;
+        padding-right: 3rem;
+        -ms-transform: translate(-50%, -50%);
+        transform: translate(-50%, -50%);
+        text-align: left;
+        box-sizing: border-box;
+    }
+
+    .title {
+        text-align: left;
+        font-size: 40px;
+    }
+
+    .grid {
+        display: flex;
+        flex-wrap: wrap;
+        margin-right: -0.5rem;
+        margin-left: -0.5rem;
+        margin-top: -0.5rem;
+    }
+
+    .col {
+        flex-grow: 1;
+        flex-basis: 0;
+        padding: 0.5rem;
+    }
+
+    #qrcode {
+        width: 200px;
+        height: 200px;
+    }
+</style>
