@@ -1,6 +1,7 @@
 package viewer
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -8,42 +9,50 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"reflect"
 )
 
 var logger = log.New(os.Stdout, "[viewer] - ", log.Ldate|log.Ltime|log.Lshortfile)
 
+type DBClient interface {
+	CreatePlaque(ctx context.Context, plaque *fstore.Plaque) (*fstore.FirestorePlaque, error)
+	GetPlaque(ctx context.Context, documentID string) (*fstore.FirestorePlaque, error)
+}
+
 // Viewer is an object that displays media and plaque information
 type Viewer struct {
-	ConfigFile  string
+	PlaqueFile  string
 	MediaDir    string
 	MetadataDir string
 	PlaylistDir string
+	DBClient
 	VideoPlayer
 	PlaqueManager
 }
 
 // NewViewer returns a new initialized viewer
-func NewViewer() *Viewer {
+func NewViewer(dbClient DBClient) *Viewer {
 	return &Viewer{
-		ConfigFile:    "config.json",
+		PlaqueFile:    "plaque.json",
 		MediaDir:      "media",
 		MetadataDir:   "metadata",
 		PlaylistDir:   "playlist",
+		DBClient:      dbClient,
 		VideoPlayer:   &VLCPlayer{},
 		PlaqueManager: &Webview{},
 	}
-}
-
-type ViewerConfig struct {
-	DocumentID string `json:"document_id"`
-	Playlist   bool   `json:"playlist"`
 }
 
 // Start will play media and show the plaque as specified by the config file
 func (v *Viewer) Start() error {
 	logger.Printf("Start()")
 
-	meta, err := v.GetActiveTokenMeta()
+	plaque, err := v.loadPlaqueData(context.Background())
+	if err != nil {
+		return err
+	}
+
+	meta, err := v.readMetadata(plaque.DocumentID)
 	if err != nil {
 		return err
 	}
@@ -64,16 +73,16 @@ func (v *Viewer) Start() error {
 }
 
 func (v *Viewer) GetActiveTokenMeta() (*fstore.FirestoreTokenMeta, error) {
-	config, err := v.readConfig()
+	plaque, err := v.readLocalPlaqueFile()
 	if err != nil {
 		return nil, err
 	}
 
-	if config.Playlist {
+	/* if config.Playlist {
 		return nil, fmt.Errorf("error - playlists not implemented")
-	}
+	} */
 
-	meta, err := v.readMetadata(config.DocumentID)
+	meta, err := v.readMetadata(plaque.DocumentID)
 	if err != nil {
 		return nil, err
 	}
@@ -81,9 +90,69 @@ func (v *Viewer) GetActiveTokenMeta() (*fstore.FirestoreTokenMeta, error) {
 	return meta, nil
 }
 
-// readConfig reads and returns the config file for the viewer
-func (v *Viewer) readConfig() (*ViewerConfig, error) {
-	jsonFile, err := os.Open(v.ConfigFile)
+// loadPlaqueData loads the most up to date version of the plaque for this viewer, checking with the remote firestore
+// - first loads the local plaque file
+// - if local file does not exist, create on the remote
+// - if does exist, retrieve corresponding plaque from firestore
+// - if fail to retrieve from firestore, return local plaque
+// - if firestore plaque found, compare to local plaque, if same return them
+// - if not matching local plaque, overwrite and return remote
+func (v *Viewer) loadPlaqueData(ctx context.Context) (*fstore.FirestorePlaque, error) {
+
+	// read local file to get document id
+	localPlaque, err := v.readLocalPlaqueFile()
+
+	// if we cannot find a local plaque file, create one on the remote server
+	if err != nil {
+		logger.Printf("loadPlaqueData error reading local file: %+v, creating new plaque", err)
+		remotePlaque, err := v.DBClient.CreatePlaque(ctx, new(fstore.Plaque))
+		if err != nil {
+			logger.Printf("loadPlaqueData failed to create new plaque, exiting with error: %+v", err)
+			return nil, err
+		}
+
+		plaqueBytes, err := json.Marshal(remotePlaque)
+		if err != nil {
+			return nil, err
+		}
+
+		err = ioutil.WriteFile(v.PlaqueFile, plaqueBytes, 0644)
+		if err != nil {
+			return nil, err
+		}
+
+		return remotePlaque, nil
+	}
+
+	// retrieve remote plaque that matches local document id
+	remotePlaque, err := v.DBClient.GetPlaque(ctx, localPlaque.DocumentID)
+	if err != nil {
+		logger.Printf("loadPlaqueData failed to retrieve remote plaque: %+v", err)
+		// if we are offline, just return local plaque
+		return localPlaque, nil
+	}
+
+	if reflect.DeepEqual(remotePlaque, localPlaque) {
+		return localPlaque, nil
+	}
+
+	// if not equal we overwrite file with remote data
+	plaqueBytes, err := json.Marshal(remotePlaque)
+	if err != nil {
+		return nil, err
+	}
+
+	err = ioutil.WriteFile(v.PlaqueFile, plaqueBytes, 0644)
+	if err != nil {
+		return nil, err
+	}
+	return remotePlaque, nil
+
+}
+
+// readLocalPlaqueFile attempts to read local plaque file
+func (v *Viewer) readLocalPlaqueFile() (*fstore.FirestorePlaque, error) {
+	jsonFile, err := os.Open(v.PlaqueFile)
 	if err != nil {
 		return nil, err
 	}
@@ -93,13 +162,13 @@ func (v *Viewer) readConfig() (*ViewerConfig, error) {
 		return nil, err
 	}
 
-	var config ViewerConfig
-	err = json.Unmarshal([]byte(byteValue), &config)
+	var plaque fstore.FirestorePlaque
+	err = json.Unmarshal([]byte(byteValue), &plaque)
 	if err != nil {
 		return nil, err
 	}
 
-	return &config, err
+	return &plaque, err
 }
 
 // readMetadata reads and returns the metadata file for the given document id

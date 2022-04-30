@@ -16,43 +16,44 @@ func TestViewer(t *testing.T) {
 
 	tmpdir := t.TempDir()
 
-	// setup test config file
-	testConfig := ViewerConfig{DocumentID: "1", Playlist: false}
-	file, err := json.Marshal(testConfig)
-	g.Assert(err).IsNil()
-	configPath := filepath.Join(tmpdir, "config_test.json")
-	g.Assert(ioutil.WriteFile(configPath, file, 0644)).IsNil()
+	g.Describe("Viewer (offline)", func() {
+		// setup test config file
+		testPlaque := fstore.FirestorePlaque{DocumentID: "1", Plaque: fstore.Plaque{Name: "test"}}
+		file, err := json.Marshal(testPlaque)
+		g.Assert(err).IsNil()
+		configPath := filepath.Join(tmpdir, "config_test.json")
+		g.Assert(ioutil.WriteFile(configPath, file, 0644)).IsNil()
 
-	// setup test meta file
-	testMeta := &fstore.FirestoreTokenMeta{DocumentID: "1", TokenMeta: fstore.TokenMeta{
-		Name:   "starry night",
-		Artist: "van gogh",
-	}}
-	file, err = json.Marshal(testMeta)
-	g.Assert(err).IsNil()
-	metaPath := filepath.Join(tmpdir, "1.json")
-	g.Assert(ioutil.WriteFile(metaPath, file, 0644)).IsNil()
+		// setup test meta file
+		testMeta := &fstore.FirestoreTokenMeta{DocumentID: "1", TokenMeta: fstore.TokenMeta{
+			Name:   "starry night",
+			Artist: "van gogh",
+		}}
+		file, err = json.Marshal(testMeta)
+		g.Assert(err).IsNil()
+		metaPath := filepath.Join(tmpdir, "1.json")
+		g.Assert(ioutil.WriteFile(metaPath, file, 0644)).IsNil()
 
-	// create viewer with stubbed VideoPlayer and PlaqueManager
-	playerStub := &VideoPlayerStub{}
-	plaqueStub := &PlaqueManagerStub{}
+		// create viewer with stubbed VideoPlayer and PlaqueManager
+		playerStub := &VideoPlayerStub{}
+		plaqueStub := &PlaqueManagerStub{}
+		fstoreClientStub := &fstore.FstoreClientStub{}
 
-	v := Viewer{
-		ConfigFile:    configPath,
-		MetadataDir:   tmpdir,
-		MediaDir:      tmpdir,
-		VideoPlayer:   playerStub,
-		PlaqueManager: plaqueStub,
-	}
-
-	g.Describe("Viewer", func() {
+		v := Viewer{
+			PlaqueFile:    configPath,
+			MetadataDir:   tmpdir,
+			MediaDir:      tmpdir,
+			DBClient:      fstoreClientStub,
+			VideoPlayer:   playerStub,
+			PlaqueManager: plaqueStub,
+		}
 
 		g.It("Should load document id from config file", func() {
-			config, err := v.readConfig()
+			plaque, err := v.readLocalPlaqueFile()
 			g.Assert(err).IsNil()
 
-			g.Assert(config.DocumentID).Equal(testConfig.DocumentID)
-			g.Assert(config.Playlist).Equal(testConfig.Playlist)
+			g.Assert(plaque.DocumentID).Equal(testPlaque.DocumentID)
+			g.Assert(plaque.Plaque.Name).Equal(testPlaque.Plaque.Name)
 		})
 
 		g.It("Should properly parse metadata file", func() {
@@ -75,4 +76,5 @@ func TestViewer(t *testing.T) {
 			g.Assert(cmp.Equal(*plaqueStub.tokenDisplayed, *testMeta)).IsTrue()
 		})
 	})
+
 }

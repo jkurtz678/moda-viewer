@@ -22,7 +22,7 @@ func TestPlaqueAPI(t *testing.T) {
 	tmpdir := t.TempDir()
 
 	// setup test config file
-	testConfig := viewer.ViewerConfig{DocumentID: "1", Playlist: false}
+	testConfig := fstore.FirestorePlaque{DocumentID: "1", Plaque: fstore.Plaque{Name: "test"}}
 	file, err := json.Marshal(testConfig)
 	g.Assert(err).IsNil()
 	configPath := filepath.Join(tmpdir, "config_test.json")
@@ -38,8 +38,9 @@ func TestPlaqueAPI(t *testing.T) {
 	metaPath := filepath.Join(tmpdir, "1.json")
 	g.Assert(ioutil.WriteFile(metaPath, file, 0644)).IsNil()
 
-	v := viewer.NewViewer()
-	v.ConfigFile = configPath
+	fstoreClientStub := &fstore.FstoreClientStub{}
+	v := viewer.NewViewer(fstoreClientStub)
+	v.PlaqueFile = configPath
 	v.MetadataDir = tmpdir
 
 	h := NewPlaqueAPIHandler(v)
