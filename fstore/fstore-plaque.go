@@ -1,9 +1,13 @@
 package fstore
 
-import "context"
+import (
+	"context"
+	"fmt"
+)
 
 const plaqueCollection = "plaque"
 
+// CreatePlaque creates a plaque and returns the firestore version of it
 func (fc *FirestoreClient) CreatePlaque(ctx context.Context, plaque *Plaque) (*FirestorePlaque, error) {
 	ref, _, err := fc.Collection(plaqueCollection).Add(ctx, plaque)
 	if err != nil {
@@ -26,4 +30,24 @@ func (fc *FirestoreClient) CreatePlaque(ctx context.Context, plaque *Plaque) (*F
 	}
 
 	return fp, nil
+}
+
+// GetPlaque returns a plaque by document id
+func (fc *FirestoreClient) GetPlaque(ctx context.Context, documentID string) (*FirestorePlaque, error) {
+	ref := fc.Collection(plaqueCollection).Doc(documentID)
+	if ref == nil {
+		return nil, fmt.Errorf("Plaque not found for document id")
+	}
+	snapshot, err := ref.Get(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	plaque := new(Plaque)
+	err = snapshot.DataTo(plaque)
+	if err != nil {
+		return nil, err
+	}
+
+	return &FirestorePlaque{Plaque: *plaque, DocumentID: ref.ID}, nil
 }

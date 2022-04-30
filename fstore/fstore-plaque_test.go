@@ -13,11 +13,17 @@ func TestPlaque(t *testing.T) {
 	client := NewFirestoreTestClient(ctx)
 	defer client.Close()
 	g.Describe("fstore.Plaque", func() {
-		g.It("should create plaques", func() {
+		g.It("should create and retrieve plaques", func() {
+			// create
 			p := &Plaque{Name: "test"}
 			fp, err := client.CreatePlaque(ctx, p)
 			g.Assert(err).IsNil()
 			g.Assert(fp.DocumentID != "").IsTrue()
+
+			// retrieve
+			fp2, err := client.GetPlaque(ctx, fp.DocumentID)
+			g.Assert(err).IsNil()
+			g.Assert(fp2.DocumentID).Equal(fp.DocumentID)
 		})
 	})
 }
