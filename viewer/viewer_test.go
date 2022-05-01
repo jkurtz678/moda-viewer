@@ -130,13 +130,22 @@ func TestViewer(t *testing.T) {
 			})).IsNil()
 
 			// loadPlaqueData should trigger overwriting of local file
-			_, err = v.loadPlaqueData(context.Background())
+			plaque2, err := v.loadPlaqueData(context.Background())
 			g.Assert(err).IsNil()
+			g.Assert(plaque2.DocumentID).Equal(plaque.DocumentID)
+			g.Assert(plaque2.Plaque.Name).Equal("update-test")
 
+			// ensure local file has been changed
 			localPlaque, err := v.readLocalPlaqueFile()
 			g.Assert(err).IsNil()
+			g.Assert(localPlaque.DocumentID).Equal(plaque.DocumentID)
 			g.Assert(localPlaque.Plaque.Name).Equal("update-test")
 
+			// loading plaque data with no change should return the same plaque
+			plaque3, err := v.loadPlaqueData(context.Background())
+			g.Assert(err).IsNil()
+			g.Assert(plaque3.DocumentID).Equal(plaque.DocumentID)
+			g.Assert(plaque3.Plaque.Name).Equal("update-test")
 		})
 	})
 }
