@@ -2,6 +2,8 @@ package fstore
 
 import (
 	"context"
+	"log"
+	"os"
 
 	"cloud.google.com/go/firestore"
 	firebase "firebase.google.com/go"
@@ -24,4 +26,21 @@ func NewFirestoreClient(ctx context.Context) (*FirestoreClient, error) {
 		return nil, err
 	}
 	return &FirestoreClient{Client: client}, nil
+}
+
+func NewFirestoreTestClient(ctx context.Context) *FirestoreClient {
+	err := os.Setenv("PROJECT", "moda-viewer")
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = os.Setenv("FIRESTORE_EMULATOR_HOST", "localhost:8080")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	client, err := firestore.NewClient(ctx, "moda-viewer")
+	if err != nil {
+		log.Fatal(err)
+	}
+	return &FirestoreClient{Client: client}
 }

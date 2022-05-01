@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"cloud.google.com/go/firestore"
 	"github.com/franela/goblin"
 )
 
@@ -24,6 +25,16 @@ func TestPlaque(t *testing.T) {
 			fp2, err := client.GetPlaque(ctx, fp.DocumentID)
 			g.Assert(err).IsNil()
 			g.Assert(fp2.DocumentID).Equal(fp.DocumentID)
+
+			// update
+			g.Assert(client.UpdatePlaque(ctx, fp2.DocumentID, []firestore.Update{{
+				Path: "name", Value: "update-test",
+			}})).IsNil()
+
+			// confirm change
+			fp3, err := client.GetPlaque(ctx, fp2.DocumentID)
+			g.Assert(err).IsNil()
+			g.Assert(fp3.Plaque.Name).Equal("update-test")
 		})
 	})
 }

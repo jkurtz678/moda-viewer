@@ -3,6 +3,8 @@ package fstore
 import (
 	"context"
 	"fmt"
+
+	"cloud.google.com/go/firestore"
 )
 
 const plaqueCollection = "plaque"
@@ -50,4 +52,10 @@ func (fc *FirestoreClient) GetPlaque(ctx context.Context, documentID string) (*F
 	}
 
 	return &FirestorePlaque{Plaque: *plaque, DocumentID: ref.ID}, nil
+}
+
+// UpdatePlaque performs a list of updates to the given document
+func (fc *FirestoreClient) UpdatePlaque(ctx context.Context, documentID string, update []firestore.Update) error {
+	_, err := fc.Collection(plaqueCollection).Doc(documentID).Update(ctx, update)
+	return err
 }

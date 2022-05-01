@@ -10,6 +10,8 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+
+	"cloud.google.com/go/firestore"
 )
 
 var logger = log.New(os.Stdout, "[viewer] - ", log.Ldate|log.Ltime|log.Lshortfile)
@@ -17,6 +19,7 @@ var logger = log.New(os.Stdout, "[viewer] - ", log.Ldate|log.Ltime|log.Lshortfil
 type DBClient interface {
 	CreatePlaque(ctx context.Context, plaque *fstore.Plaque) (*fstore.FirestorePlaque, error)
 	GetPlaque(ctx context.Context, documentID string) (*fstore.FirestorePlaque, error)
+	UpdatePlaque(ctx context.Context, documentID string, update []firestore.Update) error
 }
 
 // Viewer is an object that displays media and plaque information

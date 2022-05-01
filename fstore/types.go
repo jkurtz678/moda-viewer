@@ -12,9 +12,9 @@ type FirestoreTokenMeta struct {
 }
 
 type Plaque struct {
-	Name        string `json:"name"`
-	TokenMetaID string `json:"token_meta_id"`
-	PlaylistID  string `json:"playlist"`
+	Name        string `json:"name" firestore:"name"`
+	TokenMetaID string `json:"token_meta_id" firestore:"token_meta_id"`
+	PlaylistID  string `json:"playlist" firestore:"playlist_id"`
 }
 
 type FirestorePlaque struct {
