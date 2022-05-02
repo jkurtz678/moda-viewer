@@ -148,4 +148,70 @@ func TestViewer(t *testing.T) {
 			g.Assert(plaque3.Plaque.Name).Equal("update-test")
 		})
 	})
+	g.Describe("loadTokenMetas (online)", func() {
+		tmpdir := t.TempDir()
+		v := NewTestViewer(tmpdir)
+		v.DBClient = fstore.NewFirestoreTestClient(context.Background())
+
+		// setup plaque and metas
+		plaque, err := v.loadPlaqueData(ctx)
+		g.Assert(err).IsNil()
+
+		meta1, err := v.DBClient.CreateTokenMeta(ctx, &fstore.TokenMeta{Name: "starry night"})
+		g.Assert(err).IsNil()
+
+		meta2, err := v.DBClient.CreateTokenMeta(ctx, &fstore.TokenMeta{Name: "a sunday on the la grande jatte"})
+		g.Assert(err).IsNil()
+
+		// add token to plaques
+		err = v.DBClient.UpdatePlaque(ctx, plaque.DocumentID, []firestore.Update{{Path: "token_meta_document_id_list", Value: []string{meta1.DocumentID, meta2.DocumentID}}})
+		g.Assert(err).IsNil()
+
+		// run load plaque data again to get updated values (and ensure local plaque is matching)
+		plaque, err = v.loadPlaqueData(ctx)
+		g.Assert(err).IsNil()
+
+		g.It("should load and create local files for token metas", func() {
+			metas, err := v.loadTokenMetas(ctx, plaque)
+			g.Assert(err).IsNil()
+			g.Assert(len(metas)).Equal(2)
+			g.Assert(metas[0].DocumentID).Equal(meta1.DocumentID)
+			g.Assert(metas[0].TokenMeta.Name).Equal(meta1.TokenMeta.Name)
+			g.Assert(metas[1].DocumentID).Equal(meta2.DocumentID)
+			g.Assert(metas[1].TokenMeta.Name).Equal(meta2.TokenMeta.Name)
+
+			// now ensure local files match
+			localMeta1, err := v.readMetadata(metas[0].DocumentID)
+			g.Assert(err).IsNil()
+			g.Assert(localMeta1.DocumentID).Equal(meta1.DocumentID)
+			g.Assert(localMeta1.TokenMeta.Name).Equal(meta1.TokenMeta.Name)
+
+			localMeta2, err := v.readMetadata(metas[1].DocumentID)
+			g.Assert(err).IsNil()
+			g.Assert(localMeta2.DocumentID).Equal(meta2.DocumentID)
+			g.Assert(localMeta2.TokenMeta.Name).Equal(meta2.TokenMeta.Name)
+
+			// update remote, ensure local files update
+			g.Assert(v.DBClient.UpdateTokenMeta(ctx, meta1.DocumentID, []firestore.Update{{
+				Path: "name", Value: "starry night update",
+			}})).IsNil()
+			metas, err = v.loadTokenMetas(ctx, plaque)
+			g.Assert(err).IsNil()
+			g.Assert(metas[0].DocumentID).Equal(meta1.DocumentID)
+			g.Assert(metas[0].TokenMeta.Name).Equal("starry night update")
+			g.Assert(metas[1].DocumentID).Equal(meta2.DocumentID)
+			g.Assert(metas[1].TokenMeta.Name).Equal(meta2.TokenMeta.Name)
+
+			// now ensure local files match
+			localMeta1, err = v.readMetadata(metas[0].DocumentID)
+			g.Assert(err).IsNil()
+			g.Assert(localMeta1.DocumentID).Equal(meta1.DocumentID)
+			g.Assert(localMeta1.TokenMeta.Name).Equal("starry night update")
+
+			localMeta2, err = v.readMetadata(metas[1].DocumentID)
+			g.Assert(err).IsNil()
+			g.Assert(localMeta2.DocumentID).Equal(meta2.DocumentID)
+			g.Assert(localMeta2.TokenMeta.Name).Equal(meta2.TokenMeta.Name)
+		})
+	})
 }

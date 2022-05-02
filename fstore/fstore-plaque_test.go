@@ -14,7 +14,7 @@ func TestPlaque(t *testing.T) {
 	client := NewFirestoreTestClient(ctx)
 	defer client.Close()
 	g.Describe("fstore.Plaque", func() {
-		g.It("should create and retrieve plaques", func() {
+		g.It("should create, retrieve, and update plaques", func() {
 			// create
 			p := &Plaque{Name: "test"}
 			fp, err := client.CreatePlaque(ctx, p)

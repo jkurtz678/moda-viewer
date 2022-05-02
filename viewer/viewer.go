@@ -20,6 +20,11 @@ type DBClient interface {
 	CreatePlaque(ctx context.Context, plaque *fstore.Plaque) (*fstore.FirestorePlaque, error)
 	GetPlaque(ctx context.Context, documentID string) (*fstore.FirestorePlaque, error)
 	UpdatePlaque(ctx context.Context, documentID string, update []firestore.Update) error
+
+	CreateTokenMeta(ctx context.Context, tokenMeta *fstore.TokenMeta) (*fstore.FirestoreTokenMeta, error)
+	GetTokenMeta(ctx context.Context, documentID string) (*fstore.FirestoreTokenMeta, error)
+	GetTokenMetaList(ctx context.Context, documentIDList []string) ([]*fstore.FirestoreTokenMeta, error)
+	UpdateTokenMeta(ctx context.Context, documentID string, update []firestore.Update) error
 }
 
 // Viewer is an object that displays media and plaque information
@@ -172,6 +177,54 @@ func (v *Viewer) readLocalPlaqueFile() (*fstore.FirestorePlaque, error) {
 	}
 
 	return &plaque, err
+}
+
+// loadTokenMetas returns a list of token metas, loading from remote if online, returning local files if offline
+func (v *Viewer) loadTokenMetas(ctx context.Context, plaque *fstore.FirestorePlaque) ([]*fstore.FirestoreTokenMeta, error) {
+	localMetas := make([]*fstore.FirestoreTokenMeta, 0)
+	for _, docID := range plaque.Plaque.TokenMetaDocumentIDList {
+		fToken, err := v.readMetadata(docID)
+		if err != nil {
+			// if err, assume the metadata file has not been loaded locally yet
+			continue
+		}
+		localMetas = append(localMetas, fToken)
+	}
+
+	remoteMetas, err := v.DBClient.GetTokenMetaList(ctx, plaque.Plaque.TokenMetaDocumentIDList)
+	if err != nil {
+		// if offline, return local tokens
+		logger.Printf("loadTokenMetas GetTokenMetaList error: %+v", err)
+		return localMetas, nil
+	}
+
+	// put local tokens in a map so we can ignore order
+	localMetaMap := make(map[string]*fstore.FirestoreTokenMeta, len(localMetas))
+	for _, meta := range localMetas {
+		localMetaMap[meta.DocumentID] = meta
+	}
+
+	// if local token does not exist or match remote token, overwrite local file
+	for _, meta := range remoteMetas {
+		if reflect.DeepEqual(localMetaMap[meta.DocumentID], meta) {
+			continue
+		}
+
+		metaBytes, err := json.Marshal(meta)
+		if err != nil {
+			return nil, err
+		}
+
+		fileName := fmt.Sprintf("%s.json", meta.DocumentID)
+		filePath := filepath.Join(v.MetadataDir, fileName)
+		err = ioutil.WriteFile(filePath, metaBytes, 0644)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return remoteMetas, nil
+
 }
 
 // readMetadata reads and returns the metadata file for the given document id
