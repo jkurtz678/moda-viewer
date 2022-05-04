@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"jkurtz678/moda-viewer/fstore"
+	"jkurtz678/moda-viewer/storage"
 	"log"
 	"os"
 	"path/filepath"
@@ -27,6 +28,11 @@ type DBClient interface {
 	UpdateTokenMeta(ctx context.Context, documentID string, update []firestore.Update) error
 }
 
+// MediaClient contains methods for managing media files videos/images/gifs
+type MediaClient interface {
+	DownloadFile(fileURI string) error
+}
+
 // Viewer is an object that displays media and plaque information
 type Viewer struct {
 	PlaqueFile  string
@@ -34,18 +40,20 @@ type Viewer struct {
 	MetadataDir string
 	PlaylistDir string
 	DBClient
+	MediaClient
 	VideoPlayer
 	PlaqueManager
 }
 
 // NewViewer returns a new initialized viewer
-func NewViewer(dbClient DBClient) *Viewer {
+func NewViewer(dbClient DBClient, storageClient *storage.FirebaseStorageClient) *Viewer {
 	return &Viewer{
 		PlaqueFile:    "plaque.json",
 		MediaDir:      "media",
 		MetadataDir:   "metadata",
 		PlaylistDir:   "playlist",
 		DBClient:      dbClient,
+		MediaClient:   storageClient,
 		VideoPlayer:   &VLCPlayer{},
 		PlaqueManager: &Webview{},
 	}
@@ -60,13 +68,25 @@ func (v *Viewer) Start() error {
 		return err
 	}
 
-	meta, err := v.readMetadata(plaque.DocumentID)
+	if len(plaque.Plaque.TokenMetaIDList) == 0 {
+		return fmt.Errorf("plaque has no assigned media")
+	}
+
+	metas, err := v.loadTokenMetas(context.Background(), plaque)
 	if err != nil {
 		return err
 	}
 
+	err = v.loadMedia(context.Background(), metas)
+	if err != nil {
+		return err
+	}
+
+	// show first meta for now
+	meta := metas[0]
+
 	go func() {
-		mediaPath := filepath.Join(v.MediaDir, fmt.Sprintf("%s.mp4", meta.DocumentID))
+		mediaPath := filepath.Join(v.MediaDir, meta.MediaFileName())
 		err = v.playMedia(mediaPath)
 		if err != nil {
 			logger.Printf("playMedia error %v", err)
@@ -182,7 +202,7 @@ func (v *Viewer) readLocalPlaqueFile() (*fstore.FirestorePlaque, error) {
 // loadTokenMetas returns a list of token metas, loading from remote if online, returning local files if offline
 func (v *Viewer) loadTokenMetas(ctx context.Context, plaque *fstore.FirestorePlaque) ([]*fstore.FirestoreTokenMeta, error) {
 	localMetas := make([]*fstore.FirestoreTokenMeta, 0)
-	for _, docID := range plaque.Plaque.TokenMetaDocumentIDList {
+	for _, docID := range plaque.Plaque.TokenMetaIDList {
 		fToken, err := v.readMetadata(docID)
 		if err != nil {
 			// if err, assume the metadata file has not been loaded locally yet
@@ -191,7 +211,7 @@ func (v *Viewer) loadTokenMetas(ctx context.Context, plaque *fstore.FirestorePla
 		localMetas = append(localMetas, fToken)
 	}
 
-	remoteMetas, err := v.DBClient.GetTokenMetaList(ctx, plaque.Plaque.TokenMetaDocumentIDList)
+	remoteMetas, err := v.DBClient.GetTokenMetaList(ctx, plaque.Plaque.TokenMetaIDList)
 	if err != nil {
 		// if offline, return local tokens
 		logger.Printf("loadTokenMetas GetTokenMetaList error: %+v", err)
@@ -247,4 +267,15 @@ func (v *Viewer) readMetadata(documentID string) (*fstore.FirestoreTokenMeta, er
 	}
 
 	return &meta, err
+}
+
+// loadMedia will download all media for metas, ensuring that all media files are ready for playback
+func (v *Viewer) loadMedia(ctx context.Context, metas []*fstore.FirestoreTokenMeta) error {
+	for _, meta := range metas {
+		err := v.MediaClient.DownloadFile(meta.MediaFileName())
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
