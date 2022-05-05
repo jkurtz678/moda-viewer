@@ -2,6 +2,8 @@ fstore/firestore-debug.log
 firestore-debug.log
 firebase-debug.log
 ui-debug.log
+vlc.txt
+playlist.m3u
 
 # If you prefer the allow list template instead of the deny list, see community template:
 # https://github.com/github/gitignore/blob/main/community/Golang/Go.AllowList.gitignore

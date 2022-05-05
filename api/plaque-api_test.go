@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"jkurtz678/moda-viewer/fstore"
 	"jkurtz678/moda-viewer/viewer"
@@ -48,7 +49,7 @@ func TestPlaqueAPI(t *testing.T) {
 
 	g.Describe("PlaqueAPIHandler", func() {
 		g.It("Should load go template with token meta", func() {
-			w, r := testWR("GET", "/", "")
+			w, r := testWR("GET", fmt.Sprintf("/?token_meta_id=%s", "1"), "")
 			h.ServeHTTP(w, r)
 			g.Assert(w.Code).Equal(200)
 			g.Assert(strings.Contains(w.Body.String(), testMeta.TokenMeta.Name)).IsTrue()

@@ -29,12 +29,13 @@ func NewPlaqueAPIHandler(viewer *viewer.Viewer) *PlaqueAPIHandler {
 func (h *PlaqueAPIHandler) servePlaque(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	tmpl := template.Must(template.ParseFiles(h.PlaqueTemplate))
 
-	tokenMeta, err := h.Viewer.GetActiveTokenMeta()
+	metaID := r.URL.Query().Get("token_meta_id")
+	meta, err := h.Viewer.ReadMetadata(metaID)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	err = tmpl.Execute(w, tokenMeta.TokenMeta)
+	err = tmpl.Execute(w, meta.TokenMeta)
 	if err != nil {
 		log.Fatal(err)
 	}

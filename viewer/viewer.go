@@ -82,18 +82,37 @@ func (v *Viewer) Start() error {
 		return err
 	}
 
-	// show first meta for now
-	meta := metas[0]
+	// write v3 playlist file
+	m3uFile := ""
+	for _, m := range metas {
+		m3uFile += fmt.Sprintf("%s\n", filepath.Join(v.MediaDir, m.MediaFileName()))
+	}
+	err = os.WriteFile("playlist.m3u", []byte(m3uFile), 0644)
+	if err != nil {
+		return err
+	}
+
+	v.initPlaque()
 
 	go func() {
-		mediaPath := filepath.Join(v.MediaDir, meta.MediaFileName())
-		err = v.playMedia(mediaPath)
+		err = v.playMedia("playlist.m3u", func(mediaID string) {
+			logger.Printf("playing media id: %s", mediaID)
+			meta, err := v.GetTokenMetaForMediaID(mediaID)
+			if err != nil {
+				log.Fatal(err)
+			}
+			v.refreshPlaque(meta.DocumentID)
+			err = os.Truncate("vlc.txt", 100)
+			if err != nil {
+				log.Fatal(err)
+			}
+		})
 		if err != nil {
 			logger.Printf("playMedia error %v", err)
 		}
 	}()
 
-	err = v.showPlaque(meta)
+	err = v.showPlaque()
 	if err != nil {
 		return err
 	}
@@ -106,16 +125,30 @@ func (v *Viewer) GetActiveTokenMeta() (*fstore.FirestoreTokenMeta, error) {
 		return nil, err
 	}
 
-	/* if config.Playlist {
-		return nil, fmt.Errorf("error - playlists not implemented")
-	} */
-
-	meta, err := v.readMetadata(plaque.Plaque.TokenMetaIDList[0])
+	meta, err := v.ReadMetadata(plaque.Plaque.TokenMetaIDList[0])
 	if err != nil {
 		return nil, err
 	}
 
 	return meta, nil
+}
+
+func (v *Viewer) GetTokenMetaForMediaID(mediaID string) (*fstore.FirestoreTokenMeta, error) {
+	plaque, err := v.ReadLocalPlaqueFile()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, metaID := range plaque.Plaque.TokenMetaIDList {
+		meta, err := v.ReadMetadata(metaID)
+		if err != nil {
+			return nil, err
+		}
+		if meta.TokenMeta.MediaID == mediaID {
+			return meta, nil
+		}
+	}
+	return nil, fmt.Errorf("local meta file not found")
 }
 
 // loadPlaqueData loads the most up to date version of the plaque for this viewer, checking with the remote firestore
@@ -203,7 +236,7 @@ func (v *Viewer) ReadLocalPlaqueFile() (*fstore.FirestorePlaque, error) {
 func (v *Viewer) loadTokenMetas(ctx context.Context, plaque *fstore.FirestorePlaque) ([]*fstore.FirestoreTokenMeta, error) {
 	localMetas := make([]*fstore.FirestoreTokenMeta, 0)
 	for _, docID := range plaque.Plaque.TokenMetaIDList {
-		fToken, err := v.readMetadata(docID)
+		fToken, err := v.ReadMetadata(docID)
 		if err != nil {
 			// if err, assume the metadata file has not been loaded locally yet
 			continue
@@ -247,8 +280,8 @@ func (v *Viewer) loadTokenMetas(ctx context.Context, plaque *fstore.FirestorePla
 
 }
 
-// readMetadata reads and returns the metadata file for the given document id
-func (v *Viewer) readMetadata(documentID string) (*fstore.FirestoreTokenMeta, error) {
+// ReadMetadata reads and returns the metadata file for the given document id
+func (v *Viewer) ReadMetadata(documentID string) (*fstore.FirestoreTokenMeta, error) {
 	fileName := fmt.Sprintf("%s.json", documentID)
 	jsonFile, err := os.Open(filepath.Join(v.MetadataDir, fileName))
 	if err != nil {

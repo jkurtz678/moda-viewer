@@ -3,10 +3,12 @@ package viewer
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"io/ioutil"
 	"jkurtz678/moda-viewer/fstore"
 	"jkurtz678/moda-viewer/storage"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 
@@ -76,7 +78,7 @@ func TestViewer(t *testing.T) {
 		})
 
 		g.It("Should properly parse metadata file", func() {
-			retMeta, err := v.readMetadata(testMeta1.DocumentID)
+			retMeta, err := v.ReadMetadata(testMeta1.DocumentID)
 			g.Assert(err).IsNil()
 
 			g.Assert(retMeta.DocumentID).Equal(testMeta1.DocumentID)
@@ -129,11 +131,11 @@ func TestViewer(t *testing.T) {
 			g.Assert(err).IsNil()
 
 			// ensure metas are loaded
-			localMeta1, err := v.readMetadata(meta1.DocumentID)
+			localMeta1, err := v.ReadMetadata(meta1.DocumentID)
 			g.Assert(err).IsNil()
 			g.Assert(localMeta1.TokenMeta.MediaID).Equal(localMeta1.TokenMeta.MediaID)
 
-			localMeta2, err := v.readMetadata(meta2.DocumentID)
+			localMeta2, err := v.ReadMetadata(meta2.DocumentID)
 			g.Assert(err).IsNil()
 			g.Assert(localMeta2.TokenMeta.MediaID).Equal(localMeta2.TokenMeta.MediaID)
 
@@ -245,12 +247,12 @@ func TestViewer(t *testing.T) {
 			g.Assert(metas[1].TokenMeta.Name).Equal(meta2.TokenMeta.Name)
 
 			// now ensure local files match
-			localMeta1, err := v.readMetadata(metas[0].DocumentID)
+			localMeta1, err := v.ReadMetadata(metas[0].DocumentID)
 			g.Assert(err).IsNil()
 			g.Assert(localMeta1.DocumentID).Equal(meta1.DocumentID)
 			g.Assert(localMeta1.TokenMeta.Name).Equal(meta1.TokenMeta.Name)
 
-			localMeta2, err := v.readMetadata(metas[1].DocumentID)
+			localMeta2, err := v.ReadMetadata(metas[1].DocumentID)
 			g.Assert(err).IsNil()
 			g.Assert(localMeta2.DocumentID).Equal(meta2.DocumentID)
 			g.Assert(localMeta2.TokenMeta.Name).Equal(meta2.TokenMeta.Name)
@@ -267,12 +269,12 @@ func TestViewer(t *testing.T) {
 			g.Assert(metas[1].TokenMeta.Name).Equal(meta2.TokenMeta.Name)
 
 			// now ensure local files match
-			localMeta1, err = v.readMetadata(metas[0].DocumentID)
+			localMeta1, err = v.ReadMetadata(metas[0].DocumentID)
 			g.Assert(err).IsNil()
 			g.Assert(localMeta1.DocumentID).Equal(meta1.DocumentID)
 			g.Assert(localMeta1.TokenMeta.Name).Equal("starry night update")
 
-			localMeta2, err = v.readMetadata(metas[1].DocumentID)
+			localMeta2, err = v.ReadMetadata(metas[1].DocumentID)
 			g.Assert(err).IsNil()
 			g.Assert(localMeta2.DocumentID).Equal(meta2.DocumentID)
 			g.Assert(localMeta2.TokenMeta.Name).Equal(meta2.TokenMeta.Name)
@@ -297,4 +299,24 @@ func NewTestViewer(tmpdir string) *Viewer {
 		VideoPlayer:   playerStub,
 		PlaqueManager: plaqueStub,
 	}
+}
+
+func TestCMDLogger(t *testing.T) {
+	cmd := exec.Command("vlc", "../media/skate.mp4")
+	stdout, _ := cmd.StdoutPipe()
+	f, _ := os.Create("stdout.log")
+
+	err := cmd.Start()
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = io.Copy(io.MultiWriter(f, os.Stdout), stdout)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = cmd.Wait()
+	if err != nil {
+		t.Fatal(err)
+	}
+
 }
