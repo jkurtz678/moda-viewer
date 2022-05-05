@@ -101,7 +101,7 @@ func (v *Viewer) Start() error {
 }
 
 func (v *Viewer) GetActiveTokenMeta() (*fstore.FirestoreTokenMeta, error) {
-	plaque, err := v.readLocalPlaqueFile()
+	plaque, err := v.ReadLocalPlaqueFile()
 	if err != nil {
 		return nil, err
 	}
@@ -110,7 +110,7 @@ func (v *Viewer) GetActiveTokenMeta() (*fstore.FirestoreTokenMeta, error) {
 		return nil, fmt.Errorf("error - playlists not implemented")
 	} */
 
-	meta, err := v.readMetadata(plaque.DocumentID)
+	meta, err := v.readMetadata(plaque.Plaque.TokenMetaIDList[0])
 	if err != nil {
 		return nil, err
 	}
@@ -128,7 +128,7 @@ func (v *Viewer) GetActiveTokenMeta() (*fstore.FirestoreTokenMeta, error) {
 func (v *Viewer) loadPlaqueData(ctx context.Context) (*fstore.FirestorePlaque, error) {
 
 	// read local file to get document id
-	localPlaque, err := v.readLocalPlaqueFile()
+	localPlaque, err := v.ReadLocalPlaqueFile()
 
 	// if we cannot find a local plaque file, create one on the remote server
 	if err != nil {
@@ -178,8 +178,8 @@ func (v *Viewer) loadPlaqueData(ctx context.Context) (*fstore.FirestorePlaque, e
 
 }
 
-// readLocalPlaqueFile attempts to read local plaque file
-func (v *Viewer) readLocalPlaqueFile() (*fstore.FirestorePlaque, error) {
+// ReadLocalPlaqueFile attempts to read local plaque file
+func (v *Viewer) ReadLocalPlaqueFile() (*fstore.FirestorePlaque, error) {
 	jsonFile, err := os.Open(v.PlaqueFile)
 	if err != nil {
 		return nil, err

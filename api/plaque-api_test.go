@@ -39,7 +39,7 @@ func TestPlaqueAPI(t *testing.T) {
 	g.Assert(ioutil.WriteFile(metaPath, file, 0644)).IsNil()
 
 	fstoreClientStub := &fstore.FstoreClientStub{}
-	v := viewer.NewViewer(fstoreClientStub)
+	v := viewer.NewViewer(fstoreClientStub, nil)
 	v.PlaqueFile = configPath
 	v.MetadataDir = tmpdir
 

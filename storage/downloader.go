@@ -67,7 +67,8 @@ func (sc *FirebaseStorageClient) DownloadFile(fileURI string) error {
 		return fmt.Errorf("FirebaseStorageClient.downloadFileFromFirebase - error checking file status %s", err)
 	}
 	if exists {
-		return fmt.Errorf("FirebaseStorageClient.downloadFileFromFirebase - File already exists, skipping download")
+		log.Print("FirebaseStorageClient.downloadFileFromFirebase - File already exists, skipping download")
+		return nil
 	}
 
 	data, err := sc.retrieveFileFromFirebase(fileURI)

@@ -30,3 +30,9 @@ type FirestorePlaque struct {
 	DocumentID string `json:"document_id"`
 	Plaque     Plaque `json:"plaque"`
 }
+
+type FirestoreQuery struct {
+	Path  string
+	Op    string
+	Value interface{}
+}

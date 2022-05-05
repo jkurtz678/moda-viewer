@@ -14,8 +14,8 @@ type FirestoreClient struct {
 	*firestore.Client
 }
 
-func NewFirestoreClient(ctx context.Context) (*FirestoreClient, error) {
-	sa := option.WithCredentialsFile("../serviceAccountKey.json")
+func NewFirestoreClient(ctx context.Context, credentialsFile string) (*FirestoreClient, error) {
+	sa := option.WithCredentialsFile(credentialsFile)
 	app, err := firebase.NewApp(ctx, nil, sa)
 	if err != nil {
 		return nil, err

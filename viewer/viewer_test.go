@@ -68,7 +68,7 @@ func TestViewer(t *testing.T) {
 		v.PlaqueManager = plaqueStub
 
 		g.It("Should load document id from config file", func() {
-			plaque, err := v.readLocalPlaqueFile()
+			plaque, err := v.ReadLocalPlaqueFile()
 			g.Assert(err).IsNil()
 
 			g.Assert(plaque.DocumentID).Equal(testPlaque.DocumentID)
@@ -112,7 +112,7 @@ func TestViewer(t *testing.T) {
 		})
 
 		g.It("should load metas and media from firebase after assigning media", func() {
-			plaque, err := v.readLocalPlaqueFile()
+			plaque, err := v.ReadLocalPlaqueFile()
 			g.Assert(err).IsNil()
 
 			meta1, err := v.DBClient.CreateTokenMeta(ctx, &fstore.TokenMeta{Name: "starry night", MediaID: "s1", MediaType: ".png"})
@@ -168,7 +168,7 @@ func TestViewer(t *testing.T) {
 			_, err = os.Stat(v.PlaqueFile)
 			g.Assert(err).IsNil()
 
-			localPlaque, err := v.readLocalPlaqueFile()
+			localPlaque, err := v.ReadLocalPlaqueFile()
 			g.Assert(err).IsNil()
 			g.Assert(localPlaque.DocumentID).Equal(plaque.DocumentID)
 
@@ -200,7 +200,7 @@ func TestViewer(t *testing.T) {
 			g.Assert(plaque2.Plaque.Name).Equal("update-test")
 
 			// ensure local file has been changed
-			localPlaque, err := v.readLocalPlaqueFile()
+			localPlaque, err := v.ReadLocalPlaqueFile()
 			g.Assert(err).IsNil()
 			g.Assert(localPlaque.DocumentID).Equal(plaque.DocumentID)
 			g.Assert(localPlaque.Plaque.Name).Equal("update-test")

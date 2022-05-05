@@ -38,17 +38,34 @@ func TestTokenMeta(t *testing.T) {
 		})
 
 		g.It("should return a list of token metas", func() {
-			tm1 := &TokenMeta{Name: "test1"}
+			tm1 := &TokenMeta{Name: "sunday", Artist: "georges seurat"}
 			ftm1, err := client.CreateTokenMeta(ctx, tm1)
 			g.Assert(err).IsNil()
 
-			tm2 := &TokenMeta{Name: "test2"}
+			tm2 := &TokenMeta{Name: "starry night", Artist: "van gogh"}
 			ftm2, err := client.CreateTokenMeta(ctx, tm2)
 			g.Assert(err).IsNil()
 
-			tmList, err := client.GetTokenMetaList(ctx, []string{ftm1.DocumentID, ftm2.DocumentID})
+			tm3 := &TokenMeta{Name: "irises", Artist: "van gogh"}
+			ftm3, err := client.CreateTokenMeta(ctx, tm3)
 			g.Assert(err).IsNil()
-			g.Assert(len(tmList)).Equal(2)
+
+			tmList, err := client.GetTokenMetaList(ctx, []string{ftm1.DocumentID, ftm2.DocumentID, ftm3.DocumentID})
+			g.Assert(err).IsNil()
+			g.Assert(len(tmList)).Equal(3)
+
+			queryMetas, err := client.GetTokenMetaByQuery(ctx, FirestoreQuery{Path: "artist", Op: "==", Value: "van gogh"})
+			g.Assert(err).IsNil()
+			g.Assert(len(queryMetas)).Equal(2)
+			for _, m := range queryMetas {
+				g.Assert(m.TokenMeta.Artist).Equal("van gogh")
+			}
 		})
 	})
+
+	// cleanup token metas
+	err := client.DeleteAllTokenMetas(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
 }
