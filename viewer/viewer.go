@@ -247,6 +247,7 @@ func (v *Viewer) loadTokenMetas(ctx context.Context, plaque *fstore.FirestorePla
 		if reflect.DeepEqual(localMetaMap[meta.DocumentID], meta) {
 			continue
 		}
+		logger.Printf("updating local meta for token %s", meta.TokenMeta.Name)
 
 		metaBytes, err := json.Marshal(meta)
 		if err != nil {
