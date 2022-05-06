@@ -12,8 +12,8 @@
     <div class="center">
         <div class="title"> {{.Name}}</div>
         <div class="grid">
-            <div class="col" style="max-width: 450px;">
-                <div style="margin-bottom: 8px;">{{.Artist}}</div>
+            <div class="col" style="max-width:650px;">
+                <div style="margin-bottom: 10px;">{{.Artist}}</div>
                 <div>{{.Description}}</div>
             </div>
             <div class="col" style="display: flex; justify-content: center;">
@@ -29,8 +29,8 @@
 <script>
     const qrcode = new QRCode(document.getElementById('qrcode'), {
         text: {{.PublicLink}},
-        width: 200,
-        height: 200,
+        width: 220,
+        height: 220,
         colorDark: '#000',
         colorLight: '#fff',
         correctLevel: QRCode.CorrectLevel.M
@@ -56,8 +56,8 @@
         position: absolute;
         top: 50%;
         left: 50%;
-        padding-left: 3.5rem;
-        padding-right: 3.5rem;
+        padding-left: 3.8rem;
+        padding-right: 3.8rem;
         -ms-transform: translate(-50%, -50%);
         transform: translate(-50%, -50%);
         text-align: left;
@@ -86,5 +86,6 @@
     #qrcode {
         width: 200px;
         height: 200px;
+        
     }
 </style>
