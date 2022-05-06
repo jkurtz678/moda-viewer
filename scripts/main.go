@@ -89,15 +89,15 @@ func assignArtistToPlaque(name string) {
 }
 
 func getScriptClients() (*viewer.Viewer, *fstore.FirestoreClient) {
-	fc, err := fstore.NewFirestoreClient(context.Background(), "../serviceAccountKey.json")
+	fc, err := fstore.NewFirestoreClient(context.Background(), "./serviceAccountKey.json")
 	if err != nil {
 		log.Fatal(err)
 	}
 	v := viewer.NewViewer(fc, nil)
 
-	v.PlaqueFile = "../plaque.json"
-	v.MediaDir = "../media"
-	v.MetadataDir = "../metadata"
+	v.PlaqueFile = "./plaque.json"
+	v.MediaDir = "./media"
+	v.MetadataDir = "./metadata"
 
 	return v, fc
 }

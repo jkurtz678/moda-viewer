@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"sync"
 
 	"cloud.google.com/go/firestore"
 )
@@ -43,6 +44,8 @@ type Viewer struct {
 	MediaClient
 	VideoPlayer
 	PlaqueManager
+	activeTokenMetaID string
+	activeTokenLock sync.Mutex	
 }
 
 // NewViewer returns a new initialized viewer
@@ -95,26 +98,32 @@ func (v *Viewer) Start() error {
 		return err
 	}
 
-	v.initPlaque()
+	//v.initPlaque()
 
-	go func() {
-		err = v.playMedia(v.PlaylistFile, func(mediaID string) {
-			logger.Printf("playing media id: %s", mediaID)
-			meta, err := v.GetTokenMetaForMediaID(mediaID)
-			if err != nil {
-				log.Fatal(err)
-			}
-			v.navigateURL(meta.DocumentID)
-		})
+	//go func() {
+	err = v.playMedia(v.PlaylistFile, func(mediaID string) {
+		logger.Printf("playing media id: %s", mediaID)
+		meta, err := v.GetTokenMetaForMediaID(mediaID)
 		if err != nil {
-			logger.Printf("playMedia error %v", err)
+			logger.Printf("error getting token meta in callback %s", err)
+			return
 		}
-	}()
 
-	err = v.showPlaque()
+		//v.navigateURL(meta.DocumentID)
+
+		v.activeTokenLock.Lock()
+		v.activeTokenMetaID = meta.DocumentID
+		v.activeTokenLock.Unlock()
+	})
+	if err != nil {
+		logger.Printf("playMedia error %v", err)
+	}
+	//}()
+
+	/* err = v.showPlaque()
 	if err != nil {
 		return err
-	}
+	} */
 	return nil
 }
 
@@ -298,3 +307,11 @@ func (v *Viewer) loadMedia(ctx context.Context, metas []*fstore.FirestoreTokenMe
 	}
 	return nil
 }
+
+/*func (v *Viewer) GetActiveTokenMeta() string {
+	
+	v.activeTokenLock.Lock()
+	activeTokenID := v.activeTokenMetaID
+	v.activeTokenLock.Unlock()
+	return activeTokenID 
+}*/

@@ -18,8 +18,8 @@
             </div>
             <div class="col" style="display: flex; justify-content: center;">
                 {{ if .PublicLink}}
-                    <div id="qrcode"></div>
-                {{ end }} 
+                <div id="qrcode"></div>
+                {{ end }}
             </div>
         </div>
     </div>
@@ -27,14 +27,35 @@
 
 </html>
 <script>
-    const qrcode = new QRCode(document.getElementById('qrcode'), {
-        text: {{.PublicLink}},
-        width: 220,
+    const urlParams = new URLSearchParams(window.location.search);
+    const token_meta_id = urlParams.get("token_meta_id");
+    const qr_code_el = document.getElementById('qrcode')
+    if (qr_code_el) {
+        const qrcode = new QRCode(qr_code_el, {
+            text: {{.PublicLink }},
+    width: 220,
         height: 220,
-        colorDark: '#000',
-        colorLight: '#fff',
-        correctLevel: QRCode.CorrectLevel.M
+            colorDark: '#000',
+                colorLight: '#fff',
+                    correctLevel: QRCode.CorrectLevel.M
     });
+
+    }
+
+
+    setInterval(() => {
+        fetch("/api/active-token")
+            .then((r) => r.json())
+            .then(r => {
+                console.log("ret", r)
+                console.log("token_meta_id", token_meta_id)
+                if (r.active_token_meta_id != token_meta_id) {
+                    console.log("TRIGGER REFRESH")
+                    window.location.href = `/?token_meta_id=${r.active_token_meta_id}`
+                }
+            }
+            )
+    }, 1000)
 </script>
 <style>
     html {
@@ -86,6 +107,6 @@
     #qrcode {
         width: 200px;
         height: 200px;
-        
+
     }
 </style>
