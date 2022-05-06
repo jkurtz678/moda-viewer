@@ -1,0 +1,8 @@
+#decrypt file
+gpg serviceAccountKey.json
+
+#choco install 
+
+#set vlc to env path
+C:\Program Files\VideoLAN\VLC\
+

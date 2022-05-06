@@ -11,6 +11,7 @@ import (
 )
 
 func main() {
+	log.Println("MAIN")
 	serviceAccountKey := "./serviceAccountKey.json"
 	fstoreClient, err := fstore.NewFirestoreClient(context.Background(), serviceAccountKey)
 	if err != nil {

@@ -43,6 +43,7 @@ func (v *VLCPlayer) playMedia(filepath string, videoStartCallback func(mediaID s
 			}
 		}
 	}()
-	cmd := exec.Command("vlc", filepath, "--loop", "--no-video-title", "--no-macosx-fspanel", "--file-logging", "--logfile=vlc.txt", "--log-verbose=3")
+	//cmd := exec.Command("vlc", filepath, "--loop", "--no-video-title", "--no-macosx-fspanel", "--file-logging", "--logfile=vlc.txt", "--log-verbose=3")
+	cmd := exec.Command("vlc", filepath, "--loop", "--no-video-title", "--file-logging", "--logfile=vlc.txt", "--log-verbose=3")
 	return cmd.Run()
 }
