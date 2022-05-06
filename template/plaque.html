@@ -17,8 +17,9 @@
                 <div>{{.Description}}</div>
             </div>
             <div class="col" style="display: flex; justify-content: center;">
-                <div id="qrcode"></div>
-
+                {{ if .PublicLink}}
+                    <div id="qrcode"></div>
+                {{ end }} 
             </div>
         </div>
     </div>
@@ -27,7 +28,7 @@
 </html>
 <script>
     const qrcode = new QRCode(document.getElementById('qrcode'), {
-        text: 'http://jindo.dev.naver.com/collie',
+        text: {{.PublicLink}},
         width: 200,
         height: 200,
         colorDark: '#000',
@@ -55,8 +56,8 @@
         position: absolute;
         top: 50%;
         left: 50%;
-        padding-left: 3rem;
-        padding-right: 3rem;
+        padding-left: 3.5rem;
+        padding-right: 3.5rem;
         -ms-transform: translate(-50%, -50%);
         transform: translate(-50%, -50%);
         text-align: left;

@@ -30,11 +30,16 @@ func (h *PlaqueAPIHandler) servePlaque(w http.ResponseWriter, r *http.Request, p
 	tmpl := template.Must(template.ParseFiles(h.PlaqueTemplate))
 
 	metaID := r.URL.Query().Get("token_meta_id")
+	if metaID == "" {
+		log.Printf("PlaqueAPIHandler.servePlaque - no token_media_id provided")
+		return
+	}
 	meta, err := h.Viewer.ReadMetadata(metaID)
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	log.Printf("executing template for token meta %+v", meta)
 	err = tmpl.Execute(w, meta.TokenMeta)
 	if err != nil {
 		log.Fatal(err)

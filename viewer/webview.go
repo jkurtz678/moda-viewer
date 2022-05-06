@@ -8,7 +8,7 @@ import (
 
 type PlaqueManager interface {
 	initPlaque()
-	refreshPlaque(tokenMetaID string)
+	navigateURL(tokenMetaID string)
 	showPlaque() error
 }
 
@@ -23,8 +23,12 @@ func (wv *Webview) initPlaque() {
 	wv.WebView = w
 }
 
-func (wv *Webview) refreshPlaque(tokenMetaID string) {
-	logger.Printf("refreshPlaque()")
+func (wv *Webview) navigateURL(tokenMetaID string) {
+	if tokenMetaID == "" {
+		return
+	}
+
+	logger.Printf("navigateURL()")
 	url := fmt.Sprintf("http://localhost:8080?token_meta_id=%s", tokenMetaID)
 	wv.WebView.Dispatch(func() {
 		wv.WebView.Eval(fmt.Sprintf(`

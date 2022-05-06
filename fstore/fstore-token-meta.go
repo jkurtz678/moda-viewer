@@ -3,7 +3,6 @@ package fstore
 import (
 	"context"
 	"fmt"
-	"log"
 
 	"cloud.google.com/go/firestore"
 	"google.golang.org/api/iterator"
@@ -73,13 +72,11 @@ func (fc *FirestoreClient) GetTokenMetaList(ctx context.Context, documentIDList 
 
 // GetTokenMetaByQuery returns a list of token meta by a given firestore query
 func (fc *FirestoreClient) GetTokenMetaByQuery(ctx context.Context, query FirestoreQuery) ([]*FirestoreTokenMeta, error) {
-	log.Printf("QUERY %v", query)
 	iter := fc.Collection(tokenMetaCollection).Where(query.Path, query.Op, query.Value).Documents(ctx)
 
 	tokenMetaList := make([]*FirestoreTokenMeta, 0, 5)
 	for {
 		snap, err := iter.Next()
-		log.Printf("ITER %+v", err)
 		if err == iterator.Done {
 			break
 		}

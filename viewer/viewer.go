@@ -63,6 +63,7 @@ func NewViewer(dbClient DBClient, storageClient *storage.FirebaseStorageClient) 
 func (v *Viewer) Start() error {
 	logger.Printf("Start()")
 
+	logger.Printf("loading plaque data...")
 	plaque, err := v.loadPlaqueData(context.Background())
 	if err != nil {
 		return err
@@ -72,11 +73,13 @@ func (v *Viewer) Start() error {
 		return fmt.Errorf("plaque has no assigned media")
 	}
 
+	logger.Printf("loading token metas...")
 	metas, err := v.loadTokenMetas(context.Background(), plaque)
 	if err != nil {
 		return err
 	}
 
+	logger.Printf("loading media...")
 	err = v.loadMedia(context.Background(), metas)
 	if err != nil {
 		return err
@@ -101,7 +104,7 @@ func (v *Viewer) Start() error {
 			if err != nil {
 				log.Fatal(err)
 			}
-			v.refreshPlaque(meta.DocumentID)
+			v.navigateURL(meta.DocumentID)
 			err = os.Truncate("vlc.txt", 100)
 			if err != nil {
 				log.Fatal(err)
