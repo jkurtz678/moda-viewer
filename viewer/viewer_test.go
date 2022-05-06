@@ -62,6 +62,17 @@ func TestViewer(t *testing.T) {
 		metaPath = filepath.Join(tmpdir, "m2.json")
 		g.Assert(ioutil.WriteFile(metaPath, file, 0644)).IsNil()
 
+		/* // create empty media files
+		_, err = os.Create(testMeta1.MediaFileName())
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		_, err = os.Create(testMeta1.MediaFileName())
+		if err != nil {
+			t.Fatal(err)
+		} */
+
 		// create viewer with stubbed VideoPlayer and PlaqueManager
 		v := NewTestViewer(tmpdir)
 		playerStub := &VideoPlayerStub{}
@@ -93,8 +104,8 @@ func TestViewer(t *testing.T) {
 
 			playerStub.wg.Wait() // block until player goroutine finishes
 
-			g.Assert(playerStub.filepathPlayed).Equal(filepath.Join(tmpdir, "s1.mp4"))
-			g.Assert(cmp.Equal(*plaqueStub.tokenDisplayed, *testMeta1)).IsTrue()
+			g.Assert(playerStub.filepathPlayed).Equal(filepath.Join(tmpdir, "playlist_test.m3u"))
+			g.Assert(plaqueStub.tokenMetaIDNavigated).Equal(testMeta1.DocumentID)
 		})
 	})
 
@@ -149,8 +160,8 @@ func TestViewer(t *testing.T) {
 
 			playerStub.wg.Wait() // block until player goroutine finishes
 
-			g.Assert(playerStub.filepathPlayed).Equal(filepath.Join(tmpdir, meta1.MediaFileName()))
-			g.Assert(cmp.Equal(*plaqueStub.tokenDisplayed, *meta1)).IsTrue()
+			g.Assert(playerStub.filepathPlayed).Equal(v.PlaylistFile)
+			g.Assert(plaqueStub.tokenMetaIDNavigated).Equal(meta1.DocumentID)
 		})
 	})
 
@@ -284,6 +295,7 @@ func TestViewer(t *testing.T) {
 
 func NewTestViewer(tmpdir string) *Viewer {
 	configPath := filepath.Join(tmpdir, "config_test.json")
+	playlistPath := filepath.Join(tmpdir, "playlist_test.m3u")
 	playerStub := &VideoPlayerStub{}
 	plaqueStub := &PlaqueManagerStub{}
 	fstoreClientStub := &fstore.FstoreClientStub{}
@@ -292,6 +304,7 @@ func NewTestViewer(tmpdir string) *Viewer {
 	}
 	return &Viewer{
 		PlaqueFile:    configPath,
+		PlaylistFile:  playlistPath,
 		MetadataDir:   tmpdir,
 		MediaDir:      tmpdir,
 		DBClient:      fstoreClientStub,
@@ -302,6 +315,7 @@ func NewTestViewer(tmpdir string) *Viewer {
 }
 
 func TestCMDLogger(t *testing.T) {
+	t.Skip()
 	cmd := exec.Command("vlc", "../media/skate.mp4")
 	stdout, _ := cmd.StdoutPipe()
 	f, _ := os.Create("stdout.log")

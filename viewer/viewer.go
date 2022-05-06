@@ -35,10 +35,10 @@ type MediaClient interface {
 
 // Viewer is an object that displays media and plaque information
 type Viewer struct {
-	PlaqueFile  string
-	MediaDir    string
-	MetadataDir string
-	PlaylistDir string
+	PlaqueFile   string
+	PlaylistFile string
+	MediaDir     string
+	MetadataDir  string
 	DBClient
 	MediaClient
 	VideoPlayer
@@ -49,9 +49,9 @@ type Viewer struct {
 func NewViewer(dbClient DBClient, storageClient *storage.FirebaseStorageClient) *Viewer {
 	return &Viewer{
 		PlaqueFile:    "plaque.json",
+		PlaylistFile:  "playlist.m3u",
 		MediaDir:      "media",
 		MetadataDir:   "metadata",
-		PlaylistDir:   "playlist",
 		DBClient:      dbClient,
 		MediaClient:   storageClient,
 		VideoPlayer:   &VLCPlayer{},
@@ -90,7 +90,7 @@ func (v *Viewer) Start() error {
 	for _, m := range metas {
 		m3uFile += fmt.Sprintf("%s\n", filepath.Join(v.MediaDir, m.MediaFileName()))
 	}
-	err = os.WriteFile("playlist.m3u", []byte(m3uFile), 0644)
+	err = os.WriteFile(v.PlaylistFile, []byte(m3uFile), 0644)
 	if err != nil {
 		return err
 	}
@@ -98,17 +98,13 @@ func (v *Viewer) Start() error {
 	v.initPlaque()
 
 	go func() {
-		err = v.playMedia("playlist.m3u", func(mediaID string) {
+		err = v.playMedia(v.PlaylistFile, func(mediaID string) {
 			logger.Printf("playing media id: %s", mediaID)
 			meta, err := v.GetTokenMetaForMediaID(mediaID)
 			if err != nil {
 				log.Fatal(err)
 			}
 			v.navigateURL(meta.DocumentID)
-			err = os.Truncate("vlc.txt", 100)
-			if err != nil {
-				log.Fatal(err)
-			}
 		})
 		if err != nil {
 			logger.Printf("playMedia error %v", err)
@@ -120,20 +116,6 @@ func (v *Viewer) Start() error {
 		return err
 	}
 	return nil
-}
-
-func (v *Viewer) GetActiveTokenMeta() (*fstore.FirestoreTokenMeta, error) {
-	plaque, err := v.ReadLocalPlaqueFile()
-	if err != nil {
-		return nil, err
-	}
-
-	meta, err := v.ReadMetadata(plaque.Plaque.TokenMetaIDList[0])
-	if err != nil {
-		return nil, err
-	}
-
-	return meta, nil
 }
 
 func (v *Viewer) GetTokenMetaForMediaID(mediaID string) (*fstore.FirestoreTokenMeta, error) {

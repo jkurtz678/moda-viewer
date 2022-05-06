@@ -34,6 +34,12 @@ func (v *VLCPlayer) playMedia(filepath string, videoStartCallback func(mediaID s
 				splitQuote := strings.Split(splitSlash[len(splitSlash)-1], "'")
 				mediaID := strings.Split(splitQuote[0], ".")[0]
 				videoStartCallback(mediaID)
+
+				// truncate log file after new media is played to prevent it from getting too large
+				err := os.Truncate("vlc.txt", 0)
+				if err != nil {
+					log.Fatal(err)
+				}
 			}
 		}
 	}()
