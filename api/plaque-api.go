@@ -38,7 +38,12 @@ func (h *PlaqueAPIHandler) servePlaque(w http.ResponseWriter, r *http.Request, p
 	metaID := r.URL.Query().Get("token_meta_id")
 	if metaID == "" {
 		log.Printf("PlaqueAPIHandler.servePlaque - no token_media_id provided, loading active")
-		metaID = h.getVLCMetaID()
+		vlcMeta, err := h.getVLCMetaID()
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(fmt.Sprintf("internal error %s", err))
+		}
+		metaID = vlcMeta
 	}
 	meta, err := h.Viewer.ReadMetadata(metaID)
 	if err != nil {
@@ -57,7 +62,11 @@ func (h *PlaqueAPIHandler) getActiveToken(w http.ResponseWriter, r *http.Request
 		ActiveTokenMetaID string `json:"active_token_meta_id"`
 	}
 
-	activeTokenID := h.getVLCMetaID()
+	activeTokenID, err := h.getVLCMetaID()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(fmt.Sprintf("internal error %s", err))
+	}
 
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(http.StatusOK)
@@ -67,26 +76,26 @@ func (h *PlaqueAPIHandler) getActiveToken(w http.ResponseWriter, r *http.Request
 	}
 }
 
-func (h *PlaqueAPIHandler) getVLCMetaID() string {
+func (h *PlaqueAPIHandler) getVLCMetaID() (string, error) {
 	client := http.Client{Timeout: 5 * time.Second}
 
     req, err := http.NewRequest(http.MethodGet, "http://127.0.0.1:9090/requests/status.xml", http.NoBody)
     if err != nil {
-        log.Fatal(err)
+		return "", err 
     }
 
 	req.SetBasicAuth("", "m0da")
 
     res, err := client.Do(req)
     if err != nil {
-        log.Fatal(err)
+		return "", err 
     }
 
     defer res.Body.Close()
 
     resBody, err := io.ReadAll(res.Body)
     if err != nil {
-        log.Fatal(err)
+		return "", err  
     }
 
 	firstParse := strings.Split(string(resBody), "<info name='filename'>media\\")[1]
@@ -95,7 +104,7 @@ func (h *PlaqueAPIHandler) getVLCMetaID() string {
 
 	meta, err := h.Viewer.GetTokenMetaForMediaID(mediaID)
 	if err != nil {
-		log.Fatal(err)
+		return "", err 
 	}	
-	return meta.DocumentID
+	return meta.DocumentID, nil
 }
