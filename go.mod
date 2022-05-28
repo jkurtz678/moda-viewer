@@ -12,7 +12,9 @@ require (
 	github.com/google/go-cmp v0.5.7 // indirect
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/nxadm/tail v1.4.8 // indirect
-	google.golang.org/api v0.59.0
+	github.com/webview/webview v0.0.0-20220331215229-54e6153a6ae3 // indirect
+	github.com/zeromq/goczmq v4.1.0+incompatible // indirect
+	google.golang.org/api v0.59.0 // indirect
 	gopkg.in/fsnotify.v1 v1.4.7 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 )

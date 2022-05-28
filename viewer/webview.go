@@ -3,7 +3,6 @@ package viewer
 type PlaqueManager interface {
 	initPlaque()
 	navigateURL(tokenMetaID string)
-	showPlaque() error
 }
 
 type Webview struct {

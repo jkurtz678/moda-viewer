@@ -43,19 +43,26 @@
     }
 
 
-    setInterval(() => {
+    const interval = setInterval(() => {
         fetch("/api/active-token")
             .then((r) => r.json())
             .then(r => {
                 console.log("ret", r)
                 console.log("token_meta_id", token_meta_id)
                 if (r.active_token_meta_id != token_meta_id) {
-                    console.log("TRIGGER REFRESH")
-                    window.location.href = `/?token_meta_id=${r.active_token_meta_id}`
+                    document.body.classList.remove('show')
+                    setTimeout(() => {
+                        window.location.href = `/?token_meta_id=${r.active_token_meta_id}`
+                    }, 500)
+                    clearInterval(interval)
                 }
             }
-            )
-    }, 1000)
+            ).catch(err => {
+                console.error(err)
+            })
+    }, 500)
+
+    setTimeout(() => (document.body.classList.add('show')), 100);
 </script>
 <style>
     html {
@@ -63,13 +70,19 @@
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
         text-align: center;
+        background-color: #000000;
     }
 
     body {
         margin: 0px;
-        background-color: #000000;
         color: #FFFFFF;
         font-size: 18px;
+        opacity: 0;
+        transition: opacity 0.5s linear
+    }
+
+    body.show {
+        opacity: 1;
     }
 
     .center {

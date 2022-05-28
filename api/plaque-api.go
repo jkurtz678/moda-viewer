@@ -40,20 +40,27 @@ func (h *PlaqueAPIHandler) servePlaque(w http.ResponseWriter, r *http.Request, p
 		log.Printf("PlaqueAPIHandler.servePlaque - no token_media_id provided, loading active")
 		vlcMeta, err := h.getVLCMetaID()
 		if err != nil {
+			log.Printf("plaqueAPIHandler.servePlaque - getVLCMetaID error %v", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			json.NewEncoder(w).Encode(fmt.Sprintf("internal error %s", err))
+			return
 		}
+		log.Printf("VLC META %s", vlcMeta)
 		metaID = vlcMeta
 	}
 	meta, err := h.Viewer.ReadMetadata(metaID)
 	if err != nil {
-		log.Fatal(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(fmt.Sprintf("internal error %s", err))
+		return
 	}
 
 	log.Printf("executing template for token meta %+v", meta)
 	err = tmpl.Execute(w, meta.TokenMeta)
 	if err != nil {
-		log.Fatal(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(fmt.Sprintf("internal error %s", err))
+		return
 	}
 }
 
@@ -77,34 +84,43 @@ func (h *PlaqueAPIHandler) getActiveToken(w http.ResponseWriter, r *http.Request
 }
 
 func (h *PlaqueAPIHandler) getVLCMetaID() (string, error) {
-	client := http.Client{Timeout: 5 * time.Second}
+	log.Printf("PlaqueAPIHandler.getVLCMetaID")
 
-    req, err := http.NewRequest(http.MethodGet, "http://127.0.0.1:9090/requests/status.xml", http.NoBody)
-    if err != nil {
-		return "", err 
-    }
+	req, err := http.NewRequest(http.MethodGet, "http://127.0.0.1:9090/requests/status.xml", http.NoBody)
+	if err != nil {
+		return "", err
+	}
 
 	req.SetBasicAuth("", "m0da")
 
-    res, err := client.Do(req)
-    if err != nil {
-		return "", err 
-    }
+	client := http.Client{Timeout: 5 * time.Second}
+	res, err := client.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer res.Body.Close()
 
-    defer res.Body.Close()
+	resBody, err := io.ReadAll(res.Body)
+	if err != nil {
+		return "", err
+	}
+	log.Printf("PlaqueAPIHandler.getVLCMetaID - resBody %s", resBody)
 
-    resBody, err := io.ReadAll(res.Body)
-    if err != nil {
-		return "", err  
-    }
-
-	firstParse := strings.Split(string(resBody), "<info name='filename'>media\\")[1]
+	firstSplit := strings.Split(string(resBody), "<info name='filename'>media\\")
+	if len(firstSplit) < 2 {
+		return "", fmt.Errorf("PlaqueAPIHandler.getVLCMetaID - failed to parse media filename")
+	}
+	firstParse := firstSplit[1]
 	secondParse := strings.Split(firstParse, "</info>")[0]
 	mediaID := strings.Split(secondParse, ".")[0]
 
+	if mediaID == "" {
+		return "", fmt.Errorf("PlaqueAPIHandler.getVLCMetaID - empty media id")
+	}
+
 	meta, err := h.Viewer.GetTokenMetaForMediaID(mediaID)
 	if err != nil {
-		return "", err 
-	}	
+		return "", err
+	}
 	return meta.DocumentID, nil
 }
