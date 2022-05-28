@@ -2,7 +2,6 @@ package fstore
 
 import (
 	"context"
-	"log"
 	"sync"
 	"testing"
 
@@ -54,18 +53,19 @@ func TestListenPlaque(t *testing.T) {
 
 	var wg sync.WaitGroup
 	wg.Add(1)
-	go client.ListenPlaque(ctx, fp.DocumentID, func(plaque *FirestorePlaque) {
-		log.Printf("ListenPlaque - callback %+v", plaque)
-		defer wg.Done()
+	go func() {
+		err := client.ListenPlaque(ctx, fp.DocumentID, func(plaque *FirestorePlaque) {
+			defer wg.Done()
 
-		a.Equal("update-test", plaque.Plaque.Name)
-	})
+			a.Equal("update-test", plaque.Plaque.Name)
+		})
+		a.NoError(err)
+	}()
 
 	a.NoError(client.UpdatePlaque(ctx, fp.DocumentID, []firestore.Update{{
 		Path: "name", Value: "update-test",
 	}}))
 
-	log.Printf("waiting")
 	wg.Wait()
 
 }
