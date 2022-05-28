@@ -2,10 +2,13 @@ package fstore
 
 import (
 	"context"
+	"log"
+	"sync"
 	"testing"
 
 	"cloud.google.com/go/firestore"
 	"github.com/franela/goblin"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestPlaque(t *testing.T) {
@@ -37,4 +40,32 @@ func TestPlaque(t *testing.T) {
 			g.Assert(fp3.Plaque.Name).Equal("update-test")
 		})
 	})
+}
+
+func TestListenPlaque(t *testing.T) {
+	a := assert.New(t)
+	ctx := context.Background()
+	client := NewFirestoreTestClient(ctx)
+	defer client.Close()
+
+	p := &Plaque{Name: "test"}
+	fp, err := client.CreatePlaque(ctx, p)
+	a.NoError(err)
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go client.ListenPlaque(ctx, fp.DocumentID, func(plaque *FirestorePlaque) {
+		log.Printf("ListenPlaque - callback %+v", plaque)
+		defer wg.Done()
+
+		a.Equal("update-test", plaque.Plaque.Name)
+	})
+
+	a.NoError(client.UpdatePlaque(ctx, fp.DocumentID, []firestore.Update{{
+		Path: "name", Value: "update-test",
+	}}))
+
+	log.Printf("waiting")
+	wg.Wait()
+
 }

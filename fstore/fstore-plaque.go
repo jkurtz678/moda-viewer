@@ -59,3 +59,25 @@ func (fc *FirestoreClient) UpdatePlaque(ctx context.Context, documentID string, 
 	_, err := fc.Collection(plaqueCollection).Doc(documentID).Update(ctx, update)
 	return err
 }
+
+func (fc *FirestoreClient) ListenPlaque(ctx context.Context, documentID string, cb func(plaque *FirestorePlaque)) error {
+	ref := fc.Collection(plaqueCollection).Doc(documentID)
+	if ref == nil {
+		return fmt.Errorf("Plaque not found for document id")
+	}
+	it := ref.Snapshots(ctx)
+	for {
+		snap, err := it.Next()
+		if err != nil {
+			return err
+		}
+
+		plaque := new(Plaque)
+		err = snap.DataTo(plaque)
+		if err != nil {
+			return err
+		}
+
+		cb(&FirestorePlaque{Plaque: *plaque, DocumentID: snap.Ref.ID})
+	}
+}
