@@ -2,13 +2,15 @@ package viewer
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"jkurtz678/moda-viewer/fstore"
 	"jkurtz678/moda-viewer/storage"
 	"log"
+	"net/url"
 	"os"
 	"path/filepath"
-	"sync"
-	"time"
 )
 
 var logger = log.New(os.Stdout, "[viewer] - ", log.Ldate|log.Ltime|log.Lshortfile)
@@ -23,8 +25,6 @@ type Viewer struct {
 	MediaClient
 	VideoPlayer
 	PlaqueManager
-	activeTokenMetaID string
-	activeTokenLock   sync.Mutex
 }
 
 // NewViewer returns a new initialized viewer
@@ -42,8 +42,15 @@ func NewViewer(dbClient DBClient, storageClient *storage.FirebaseStorageClient) 
 }
 
 // Start will play media and show the plaque as specified by the config file
-func (v *Viewer) Start() error {
-	logger.Printf("Start()")
+func (v *Viewer) Startup() error {
+	logger.Printf("Startup()")
+
+	// init plaque and player processes on their own threads
+	go v.PlaqueManager.initPlaque()
+	err := v.VideoPlayer.initPlayer()
+	if err != nil {
+		return err
+	}
 
 	logger.Printf("loading plaque data...")
 	plaque, err := v.loadPlaqueData(context.Background())
@@ -51,6 +58,17 @@ func (v *Viewer) Start() error {
 		return err
 	}
 
+	err = v.ListenForPlaqueChanges(plaque.DocumentID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+
+}
+
+// LoadAndPlayTokens accepts a plaque, loads its associated media/metadata, and tells the video player to start playing this media
+func (v *Viewer) LoadAndPlayTokens(plaque *fstore.FirestorePlaque) error {
 	if len(plaque.Plaque.TokenMetaIDList) == 0 {
 		return fmt.Errorf("plaque has no assigned media")
 	}
@@ -67,41 +85,41 @@ func (v *Viewer) Start() error {
 		return err
 	}
 
-	// write v3 playlist file
-	m3uFile := ""
+	logger.Printf("playing media...")
+	filepaths := make([]string, 0, len(metas))
 	for _, m := range metas {
-		m3uFile += fmt.Sprintf("%s\n", filepath.Join(v.MediaDir, m.MediaFileName()))
+		filepaths = append(filepaths, url.QueryEscape(filepath.Join(v.MediaDir, m.MediaFileName())))
 	}
-	err = os.WriteFile(v.PlaylistFile, []byte(m3uFile), 0644)
+	err = v.VideoPlayer.playFiles(filepaths)
 	if err != nil {
 		return err
 	}
+	return nil
+}
 
-	go func() {
-		err = v.playMedia(v.PlaylistFile, func(mediaID string) {
-			logger.Printf("playing media id: %s", mediaID)
-			meta, err := v.GetTokenMetaForMediaID(mediaID)
-			if err != nil {
-				logger.Printf("error getting token meta in callback %s", err)
-				return
-			}
-
-			//v.navigateURL(meta.DocumentID)
-
-			v.activeTokenLock.Lock()
-			v.activeTokenMetaID = meta.DocumentID
-			v.activeTokenLock.Unlock()
-		})
+func (v *Viewer) ListenForPlaqueChanges(plaqueDocumentID string) error {
+	logger.Printf("ListenForPlaqueChanges - listening to changes for plaque: %s", plaqueDocumentID)
+	err := v.DBClient.ListenPlaque(context.Background(), plaqueDocumentID, func(remotePlaque *fstore.FirestorePlaque) error {
+		// update local plaque file with changes
+		plaqueBytes, err := json.Marshal(remotePlaque)
 		if err != nil {
-			logger.Printf("playMedia error %v", err)
+			return err
 		}
-	}()
-	time.Sleep(3 * time.Second)
-	v.initPlaque()
 
-	/* err = v.showPlaque()
+		err = ioutil.WriteFile(v.PlaqueFile, plaqueBytes, 0644)
+		if err != nil {
+			return err
+		}
+
+		err = v.LoadAndPlayTokens(remotePlaque)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
 	if err != nil {
+		// todo: handle losing wifi connection
 		return err
-	} */
+	}
 	return nil
 }

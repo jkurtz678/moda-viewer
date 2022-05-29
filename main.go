@@ -11,7 +11,6 @@ import (
 )
 
 func main() {
-	log.Println("MAIN")
 	serviceAccountKey := "./serviceAccountKey.json"
 	fstoreClient, err := fstore.NewFirestoreClient(context.Background(), serviceAccountKey)
 	if err != nil {
@@ -24,5 +23,5 @@ func main() {
 		log.Fatalln(http.ListenAndServe(":8080", plaqueAPIHandler))
 	}()
 
-	log.Fatal(viewer.Start())
+	log.Fatal(viewer.Startup())
 }

@@ -60,7 +60,9 @@ func (fc *FirestoreClient) UpdatePlaque(ctx context.Context, documentID string, 
 	return err
 }
 
-func (fc *FirestoreClient) ListenPlaque(ctx context.Context, documentID string, cb func(plaque *FirestorePlaque)) error {
+// ListenPlaque will listen for changes to the given plaque and call the callback function upon changes
+// callback will be called immediately once when function is called
+func (fc *FirestoreClient) ListenPlaque(ctx context.Context, documentID string, cb func(plaque *FirestorePlaque) error) error {
 	ref := fc.Collection(plaqueCollection).Doc(documentID)
 	if ref == nil {
 		return fmt.Errorf("Plaque not found for document id")
@@ -78,6 +80,9 @@ func (fc *FirestoreClient) ListenPlaque(ctx context.Context, documentID string, 
 			return err
 		}
 
-		cb(&FirestorePlaque{Plaque: *plaque, DocumentID: snap.Ref.ID})
+		err = cb(&FirestorePlaque{Plaque: *plaque, DocumentID: snap.Ref.ID})
+		if err != nil {
+			return err
+		}
 	}
 }

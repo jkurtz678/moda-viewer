@@ -9,8 +9,9 @@ type PythonWebview struct {
 }
 
 func (pw *PythonWebview) initPlaque() {
-	cmd := exec.Command("python", "viewer/plaque_webview.py", "http://localhost:8080")
-	log.Println("PythonWebview.initPlaque - ", cmd.Run())
+	log.Printf("PythonWebview.initPlaque() - running plaque webview")
+	cmd := exec.Command("python3", "viewer/plaque_webview.py", "http://localhost:8080")
+	log.Fatalf("PythonWebview.initPlaque() - error %v", cmd.Run())
 }
 
 func (pq *PythonWebview) navigateURL(tokenMetaID string) {

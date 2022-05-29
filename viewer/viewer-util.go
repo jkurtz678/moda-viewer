@@ -17,6 +17,7 @@ type DBClient interface {
 	CreatePlaque(ctx context.Context, plaque *fstore.Plaque) (*fstore.FirestorePlaque, error)
 	GetPlaque(ctx context.Context, documentID string) (*fstore.FirestorePlaque, error)
 	UpdatePlaque(ctx context.Context, documentID string, update []firestore.Update) error
+	ListenPlaque(ctx context.Context, documentID string, cb func(plaque *fstore.FirestorePlaque) error) error
 
 	CreateTokenMeta(ctx context.Context, tokenMeta *fstore.TokenMeta) (*fstore.FirestoreTokenMeta, error)
 	GetTokenMeta(ctx context.Context, documentID string) (*fstore.FirestoreTokenMeta, error)
@@ -89,11 +90,12 @@ func (v *Viewer) loadPlaqueData(ctx context.Context) (*fstore.FirestorePlaque, e
 		return localPlaque, nil
 	}
 
+	// if equal we do nothing, just return plaque
 	if reflect.DeepEqual(remotePlaque, localPlaque) {
 		return localPlaque, nil
 	}
 
-	// if not equal we overwrite file with remote data
+	// if not equal we overwrite local file with remote data
 	plaqueBytes, err := json.Marshal(remotePlaque)
 	if err != nil {
 		return nil, err
