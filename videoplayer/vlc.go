@@ -1,4 +1,4 @@
-package viewer
+package videoplayer
 
 import (
 	"log"
@@ -7,18 +7,18 @@ import (
 )
 
 type VideoPlayer interface {
-	initPlayer() error
-	playFiles(filepaths []string) error
+	InitPlayer() error
+	PlayFiles(filepaths []string) error
 }
 
 type VLCPlayer struct {
 	VLC vlcctrl.VLC
 }
 
-func (v *VLCPlayer) initPlayer() error {
-	log.Println("VLCPlayer.initPlayer() - running player")
+func (v *VLCPlayer) InitPlayer() error {
+	log.Println("VLCPlayer.InitPlayer() - running player")
 	/* cmd := exec.Command("vlc", "--loop", "--extraintf=http", "--http-port=9090", "--http-password=m0da", "--no-video-title")
-	log.Fatalf("VLCPlayer.initPlayer() - error %v", cmd.Run()) */
+	log.Fatalf("VLCPlayer.InitPlayer() - error %v", cmd.Run()) */
 
 	vlc, err := vlcctrl.NewVLC("127.0.0.1", 9090, "m0da")
 	if err != nil {
@@ -28,7 +28,7 @@ func (v *VLCPlayer) initPlayer() error {
 	return nil
 }
 
-func (v *VLCPlayer) playFiles(filepaths []string) error {
+func (v *VLCPlayer) PlayFiles(filepaths []string) error {
 	err := v.VLC.EmptyPlaylist()
 	if err != nil {
 		return err

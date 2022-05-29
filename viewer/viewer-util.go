@@ -9,21 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-
-	"cloud.google.com/go/firestore"
 )
-
-type DBClient interface {
-	CreatePlaque(ctx context.Context, plaque *fstore.Plaque) (*fstore.FirestorePlaque, error)
-	GetPlaque(ctx context.Context, documentID string) (*fstore.FirestorePlaque, error)
-	UpdatePlaque(ctx context.Context, documentID string, update []firestore.Update) error
-	ListenPlaque(ctx context.Context, documentID string, cb func(plaque *fstore.FirestorePlaque) error) error
-
-	CreateTokenMeta(ctx context.Context, tokenMeta *fstore.TokenMeta) (*fstore.FirestoreTokenMeta, error)
-	GetTokenMeta(ctx context.Context, documentID string) (*fstore.FirestoreTokenMeta, error)
-	GetTokenMetaList(ctx context.Context, documentIDList []string) ([]*fstore.FirestoreTokenMeta, error)
-	UpdateTokenMeta(ctx context.Context, documentID string, update []firestore.Update) error
-}
 
 // MediaClient contains methods for managing media files videos/images/gifs
 type MediaClient interface {

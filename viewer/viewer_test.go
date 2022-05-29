@@ -7,6 +7,9 @@ import (
 	"io/ioutil"
 	"jkurtz678/moda-viewer/fstore"
 	"jkurtz678/moda-viewer/storage"
+	"jkurtz678/moda-viewer/videoplayer"
+	"jkurtz678/moda-viewer/webview"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -61,8 +64,9 @@ func TestViewer(t *testing.T) {
 		g.Assert(err).IsNil()
 		metaPath = filepath.Join(tmpdir, "m2.json")
 		g.Assert(ioutil.WriteFile(metaPath, file, 0644)).IsNil()
+		metas := []*fstore.FirestoreTokenMeta{testMeta1, testMeta2}
 
-		/* // create empty media files
+		// create empty media files
 		_, err = os.Create(testMeta1.MediaFileName())
 		if err != nil {
 			t.Fatal(err)
@@ -71,14 +75,16 @@ func TestViewer(t *testing.T) {
 		_, err = os.Create(testMeta1.MediaFileName())
 		if err != nil {
 			t.Fatal(err)
-		} */
+		}
 
 		// create viewer with stubbed VideoPlayer and PlaqueManager
 		v := NewTestViewer(tmpdir)
-		playerStub := &VideoPlayerStub{}
-		plaqueStub := &PlaqueManagerStub{}
+		playerStub := &videoplayer.VideoPlayerStub{}
+		plaqueStub := &webview.PlaqueManagerStub{}
+		fstoreStub := &fstore.FstoreClientStub{}
 		v.VideoPlayer = playerStub
 		v.PlaqueManager = plaqueStub
+		v.DBClient = fstoreStub
 
 		g.It("Should load document id from config file", func() {
 			plaque, err := v.ReadLocalPlaqueFile()
@@ -99,13 +105,26 @@ func TestViewer(t *testing.T) {
 		})
 
 		g.It("Should call video player and plaque manager with proper params", func() {
-			playerStub.wg.Add(1) // ready player stub wait group
-			g.Assert(v.Start()).IsNil()
+			playerStub.PlayFilesWaitGroup.Add(1) // read fstore waitgroup
 
-			playerStub.wg.Wait() // block until player goroutine finishes
+			// startup will block so start in own routine
+			go func() {
+				g.Assert(v.Startup()).IsNil()
+			}()
 
-			g.Assert(playerStub.filepathPlayed).Equal(filepath.Join(tmpdir, "playlist_test.m3u"))
-			g.Assert(plaqueStub.tokenMetaIDNavigated).Equal(testMeta1.DocumentID)
+			playerStub.PlayFilesWaitGroup.Wait() // block until viewer fully starts up
+
+			// plaque and player have been started
+			g.Assert(plaqueStub.PlaqueInit).IsTrue()
+			g.Assert(playerStub.PlayerInit).IsTrue()
+
+			// player is playing correct files
+			filepaths := make([]string, 0)
+			for _, m := range metas {
+				filepaths = append(filepaths, url.QueryEscape(filepath.Join(v.MediaDir, m.MediaFileName())))
+			}
+			g.Assert(playerStub.ActivePlaylistFilepaths).Equal(filepaths)
+			g.Assert(v.Active).IsTrue()
 		})
 	})
 
@@ -113,13 +132,13 @@ func TestViewer(t *testing.T) {
 		tmpdir := t.TempDir()
 		v := NewTestViewer(tmpdir)
 		v.DBClient = fstore.NewFirestoreTestClient(context.Background())
-		playerStub := &VideoPlayerStub{}
-		plaqueStub := &PlaqueManagerStub{}
+		playerStub := &videoplayer.VideoPlayerStub{}
+		plaqueStub := &webview.PlaqueManagerStub{}
 		v.VideoPlayer = playerStub
 		v.PlaqueManager = plaqueStub
 
 		g.It("should error if no assigned media", func() {
-			err := v.Start()
+			err := v.Startup()
 			g.Assert(err).IsNotNil()
 			g.Assert(err.Error()).Equal("plaque has no assigned media")
 		})
@@ -137,9 +156,12 @@ func TestViewer(t *testing.T) {
 			err = v.DBClient.UpdatePlaque(ctx, plaque.DocumentID, []firestore.Update{{Path: "token_meta_id_list", Value: []string{meta1.DocumentID, meta2.DocumentID}}})
 			g.Assert(err).IsNil()
 
-			playerStub.wg.Add(1) // ready player stub wait group
-			err = v.Start()
-			g.Assert(err).IsNil()
+			playerStub.PlayFilesWaitGroup.Add(1) // ready player stub wait group
+			// startup will block so start in own routine
+			go func() {
+				g.Assert(v.Startup()).IsNil()
+			}()
+			playerStub.PlayFilesWaitGroup.Wait() // block until player goroutine finishes
 
 			// ensure metas are loaded
 			localMeta1, err := v.ReadMetadata(meta1.DocumentID)
@@ -150,6 +172,8 @@ func TestViewer(t *testing.T) {
 			g.Assert(err).IsNil()
 			g.Assert(localMeta2.TokenMeta.MediaID).Equal(localMeta2.TokenMeta.MediaID)
 
+			metas := []*fstore.FirestoreTokenMeta{localMeta1, localMeta2}
+
 			// ensure media files exist
 			exists, err := storage.FileExists(filepath.Join(v.MediaDir, localMeta1.MediaFileName()))
 			g.Assert(err).IsNil()
@@ -158,10 +182,12 @@ func TestViewer(t *testing.T) {
 			g.Assert(err).IsNil()
 			g.Assert(exists).IsTrue()
 
-			playerStub.wg.Wait() // block until player goroutine finishes
-
-			g.Assert(playerStub.filepathPlayed).Equal(v.PlaylistFile)
-			g.Assert(plaqueStub.tokenMetaIDNavigated).Equal(meta1.DocumentID)
+			filepaths := make([]string, 0)
+			for _, m := range metas {
+				filepaths = append(filepaths, url.QueryEscape(filepath.Join(v.MediaDir, m.MediaFileName())))
+			}
+			g.Assert(playerStub.ActivePlaylistFilepaths).Equal(filepaths)
+			g.Assert(v.Active).IsTrue()
 		})
 	})
 
@@ -296,8 +322,8 @@ func TestViewer(t *testing.T) {
 func NewTestViewer(tmpdir string) *Viewer {
 	configPath := filepath.Join(tmpdir, "config_test.json")
 	playlistPath := filepath.Join(tmpdir, "playlist_test.m3u")
-	playerStub := &VideoPlayerStub{}
-	plaqueStub := &PlaqueManagerStub{}
+	playerStub := &videoplayer.VideoPlayerStub{}
+	plaqueStub := &webview.PlaqueManagerStub{}
 	fstoreClientStub := &fstore.FstoreClientStub{}
 	storageClientStub := &storage.FirebaseStorageClientStub{
 		MediaDir: tmpdir,

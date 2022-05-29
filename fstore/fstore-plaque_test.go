@@ -54,10 +54,10 @@ func TestListenPlaque(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
-		err := client.ListenPlaque(ctx, fp.DocumentID, func(plaque *FirestorePlaque) {
+		err := client.ListenPlaque(ctx, fp.DocumentID, func(plaque *FirestorePlaque) error {
 			defer wg.Done()
-
 			a.Equal("update-test", plaque.Plaque.Name)
+			return nil
 		})
 		a.NoError(err)
 	}()
