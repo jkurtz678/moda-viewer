@@ -4,15 +4,15 @@
 <head>
     <meta charset="utf-8">
     <title>name</title>
-    <script src="https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs/qrcode.min.js"></script>
-    <script src="https://unpkg.com/vue@3"></script>
+    <script src="/ui/qrcode.min.js"></script>
+    <script src="/ui/vue3.js"></script>
 </head>
 
 <body>
 
     <div id="app" class="center">
         <div :class="show_content ? 'container show' : 'container'">
-            <template v-if="status == 'loading'">
+            <div v-show="status == 'loading'">
                 <div style="text-align: center">
                     <div class="lds-ring">
                         <div></div>
@@ -21,19 +21,19 @@
                         <div></div>
                     </div>
                 </div>
-            </template>
-            <template v-if="status == 'plaque'">
-                <div class="title">{{active_token_meta.token_meta.name}}</div>
+            </div>
+            <div v-show="status == 'plaque'">
+                <div class="title">{{active_token_meta?.token_meta?.name}}</div>
                 <div class="grid">
                     <div class="col" style="max-width:650px;">
-                        <div style="margin-bottom: 10px;">{{active_token_meta.token_meta.artist}}</div>
-                        <div>{{active_token_meta.token_meta.description}}</div>
+                        <div style="margin-bottom: 10px;">{{active_token_meta?.token_meta?.artist}}</div>
+                        <div>{{active_token_meta?.token_meta?.description}}</div>
                     </div>
                     <div class="col" style="display: flex; justify-content: center;">
                         <div id="qrcode"></div>
                     </div>
                 </div>
-            </template>
+            </div>
         </div>
 
     </div>
@@ -49,7 +49,7 @@
                 plaque: null,
                 active_token_meta: null,
                 interval: null,
-                show_content: false,
+                show_content: true,
                 qrcode: null
             }
         },

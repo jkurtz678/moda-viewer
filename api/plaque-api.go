@@ -25,11 +25,12 @@ type PlaqueAPIHandler struct {
 func NewPlaqueAPIHandler(viewer *viewer.Viewer) *PlaqueAPIHandler {
 	h := &PlaqueAPIHandler{
 		Viewer:         viewer,
-		PlaqueTemplate: "template/plaque.html",
+		PlaqueTemplate: "ui/plaque.html",
 		Router:         httprouter.New(),
 	}
 	h.Router.GET("/", h.servePlaque)
 	h.Router.GET("/api/status", h.getStatus)
+	h.Router.ServeFiles("/ui/*filepath", http.Dir("ui"))
 	return h
 }
 
@@ -55,6 +56,8 @@ func (h *PlaqueAPIHandler) getStatus(w http.ResponseWriter, r *http.Request, par
 		log.Printf("PlaqueAPIHandler.getStatus - failed to get active token meta %v", err)
 		PlaqueStatus.ActiveTokenMeta = nil
 	}
+
+	log.Printf("PlaqueAPIHandler.getStatus - %+v", PlaqueStatus)
 
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(http.StatusOK)
@@ -85,14 +88,12 @@ func (h *PlaqueAPIHandler) getVLCMeta() (*fstore.FirestoreTokenMeta, error) {
 	if err != nil {
 		return nil, err
 	}
-	log.Printf("PlaqueAPIHandler.getVLCMeta - resBody %s", resBody)
 
 	var vlcStatus VLCStatus
 	err = json.Unmarshal(resBody, &vlcStatus)
 	if err != nil {
 		return nil, err
 	}
-	log.Printf("PlaqueAPIHandler.getVLCMeta - vlcUnmarshal %+v", vlcStatus)
 
 	filename := vlcStatus.Information.Category.Meta.Filename
 	mediaID := strings.TrimSuffix(filename, filepath.Ext(filename))
