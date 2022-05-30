@@ -13,14 +13,16 @@
     <div id="app" class="center">
         <div :class="show_content ? 'container show' : 'container'">
             <div v-show="status == 'loading'">
-                <div style="text-align: center">
-                    <div class="lds-ring">
-                        <div></div>
-                        <div></div>
-                        <div></div>
-                        <div></div>
-                    </div>
+                <div class="lds-ring">
+                    <div></div>
+                    <div></div>
+                    <div></div>
+                    <div></div>
                 </div>
+            </div>
+            <div v-show="status == 'scan'" >
+                <div id="scan-qrcode" style="display: flex; justify-content: center;"></div>
+                <div style="margin-top: 10px; font-size: 30px;">Scan to cast art</div>
             </div>
             <div v-show="status == 'plaque'">
                 <div class="title">{{active_token_meta?.token_meta?.name}}</div>
@@ -30,7 +32,7 @@
                         <div>{{active_token_meta?.token_meta?.description}}</div>
                     </div>
                     <div class="col" style="display: flex; justify-content: center;">
-                        <div id="qrcode"></div>
+                        <div id="plaque-qrcode"></div>
                     </div>
                 </div>
             </div>
@@ -50,7 +52,8 @@
                 active_token_meta: null,
                 interval: null,
                 show_content: true,
-                qrcode: null
+                plaque_qrcode: null,
+                scan_qrcode: null
             }
         },
         computed: {
@@ -58,14 +61,25 @@
                 if (!this.active_token_meta) {
                     return "loading"
                 }
+                if (!this.plaque?.plaque?.account_id) {
+                    return "scan"
+                }
                 return "plaque"
             }
         },
         mounted() {
-
+            this.setupQrCodes();
             this.interval = setInterval(() => {
                 this.getStatus();
             }, 500)
+        },
+        watch: {
+            status(status) {
+                if (status == 'loading') {
+                    return
+                }
+                this.updateQrCode(status)
+            }
         },
         methods: {
             getStatus() {
@@ -88,22 +102,31 @@
                         console.error(err)
                     })
             },
-            updateQrCode() {
-                if (!this.qrcode) {
-                    const qr_code_el = document.getElementById('qrcode')
-                    if (!qr_code_el) {
-                        return
-                    }
-                    this.qrcode = new QRCode(qr_code_el, {
-                        text: "",
-                        width: 220,
-                        height: 220,
-                        colorDark: '#000',
-                        colorLight: '#fff',
-                        correctLevel: QRCode.CorrectLevel.M
-                    });
+            setupQrCodes() {
+                this.scan_qrcode = new QRCode(document.getElementById('scan-qrcode'), {
+                    text: "",
+                    width: 300,
+                    height: 300,
+                    colorDark: '#000',
+                    colorLight: '#fff',
+                    correctLevel: QRCode.CorrectLevel.M
+                });
+                this.plaque_qrcode = new QRCode(document.getElementById('plaque-qrcode'), {
+                    text: "",
+                    width: 220,
+                    height: 220,
+                    colorDark: '#000',
+                    colorLight: '#fff',
+                    correctLevel: QRCode.CorrectLevel.M
+                });
+            },
+            updateQrCode(status) {
+                if (status == 'plaque') {
+                    this.plaque_qrcode.makeCode(this.active_token_meta?.token_meta?.public_link)
                 }
-                this.qrcode.makeCode(this.active_token_meta.token_meta.public_link)
+                if (status == 'scan') {
+                    this.scan_qrcode.makeCode(this.plaque?.document_id);
+                }
             }
         }
     }).mount('#app')
@@ -144,6 +167,7 @@
         transform: translate(-50%, -50%);
         text-align: left;
         box-sizing: border-box;
+        text-align: center;
     }
 
     .title {
