@@ -2,33 +2,36 @@ package videoplayer
 
 import (
 	"log"
+	"os/exec"
 
 	vlcctrl "github.com/CedArctic/go-vlc-ctrl"
 )
 
 type VideoPlayer interface {
-	InitPlayer() error
+	InitPlayer()
 	PlayFiles(filepaths []string) error
+	GetStatus() error
 }
 
 type VLCPlayer struct {
 	VLC vlcctrl.VLC
 }
 
-func (v *VLCPlayer) InitPlayer() error {
+func (v *VLCPlayer) InitPlayer() {
 	log.Println("VLCPlayer.InitPlayer() - running player")
-	/* cmd := exec.Command("vlc", "--loop", "--extraintf=http", "--http-port=9090", "--http-password=m0da", "--no-video-title")
-	log.Fatalf("VLCPlayer.InitPlayer() - error %v", cmd.Run()) */
 
 	vlc, err := vlcctrl.NewVLC("127.0.0.1", 9090, "m0da")
 	if err != nil {
-		return err
+		log.Fatal(err)
 	}
 	v.VLC = vlc
-	return nil
+
+	cmd := exec.Command("vlc", "--loop", "--extraintf=http", "--http-port=9090", "--http-password=m0da", "--no-video-title")
+	log.Fatalf("VLCPlayer.InitPlayer() - error %v", cmd.Run())
 }
 
 func (v *VLCPlayer) PlayFiles(filepaths []string) error {
+	log.Printf("VLCPlayer.PlayFiles() - playing playlist of %v files", len(filepaths))
 	err := v.VLC.EmptyPlaylist()
 	if err != nil {
 		return err
@@ -41,4 +44,14 @@ func (v *VLCPlayer) PlayFiles(filepaths []string) error {
 		}
 	}
 	return v.VLC.Play(1)
+}
+
+func (v *VLCPlayer) GetStatus() error {
+	status, err := v.VLC.GetStatus()
+	if err != nil {
+		return err
+	}
+	log.Printf("status: %+v", status)
+	log.Printf("information: %+v", status.Information)
+	return nil
 }

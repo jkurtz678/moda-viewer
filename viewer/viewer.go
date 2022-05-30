@@ -51,10 +51,7 @@ func (v *Viewer) Startup() error {
 
 	// init plaque and player processes on their own threads
 	go v.PlaqueManager.InitPlaque()
-	err := v.VideoPlayer.InitPlayer()
-	if err != nil {
-		return err
-	}
+	go v.VideoPlayer.InitPlayer()
 
 	logger.Printf("loading plaque data...")
 	plaque, err := v.loadPlaqueData(context.Background())

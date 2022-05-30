@@ -15,7 +15,7 @@ type PythonWebview struct {
 
 func (pw *PythonWebview) InitPlaque() {
 	log.Printf("PythonWebview.InitPlaque() - running plaque webview")
-	cmd := exec.Command("python3", "viewer/plaque_webview.py", "http://localhost:8080")
+	cmd := exec.Command("python3", "webview/plaque_webview.py", "http://localhost:8080")
 	log.Fatalf("PythonWebview.InitPlaque() - error %v", cmd.Run())
 }
 

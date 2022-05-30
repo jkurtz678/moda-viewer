@@ -13,9 +13,8 @@ type VideoPlayerStub struct {
 	PlayFilesWaitGroup      sync.WaitGroup
 }
 
-func (v *VideoPlayerStub) InitPlayer() error {
+func (v *VideoPlayerStub) InitPlayer() {
 	v.PlayerInit = true
-	return nil
 }
 
 func (v *VideoPlayerStub) PlayFiles(filepaths []string) error {
@@ -29,6 +28,7 @@ func parsePlaylistFile(filepath string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer jsonFile.Close()
 
 	byteValue, err := ioutil.ReadAll(jsonFile)
 	if err != nil {

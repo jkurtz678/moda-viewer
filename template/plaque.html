@@ -3,66 +3,110 @@
 
 <head>
     <meta charset="utf-8">
-    <title>{{.Name}}</title>
+    <title>name</title>
     <script src="https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs/qrcode.min.js"></script>
+    <script src="https://unpkg.com/vue@3"></script>
 </head>
 
 <body>
 
-    <div class="center">
-        <div class="title"> {{.Name}}</div>
-        <div class="grid">
-            <div class="col" style="max-width:650px;">
-                <div style="margin-bottom: 10px;">{{.Artist}}</div>
-                <div>{{.Description}}</div>
-            </div>
-            <div class="col" style="display: flex; justify-content: center;">
-                {{ if .PublicLink}}
-                <div id="qrcode"></div>
-                {{ end }}
-            </div>
+    <div id="app" class="center">
+        <div :class="show_content ? 'container show' : 'container'">
+            <template v-if="status == 'loading'">
+                <div style="text-align: center">
+                    <div class="lds-ring">
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                    </div>
+                </div>
+            </template>
+            <template v-if="status == 'plaque'">
+                <div class="title">{{active_token_meta.token_meta.name}}</div>
+                <div class="grid">
+                    <div class="col" style="max-width:650px;">
+                        <div style="margin-bottom: 10px;">{{active_token_meta.token_meta.artist}}</div>
+                        <div>{{active_token_meta.token_meta.description}}</div>
+                    </div>
+                    <div class="col" style="display: flex; justify-content: center;">
+                        <div id="qrcode"></div>
+                    </div>
+                </div>
+            </template>
         </div>
+
     </div>
 </body>
 
 </html>
 <script>
-    const urlParams = new URLSearchParams(window.location.search);
-    const token_meta_id = urlParams.get("token_meta_id");
-    const qr_code_el = document.getElementById('qrcode')
-    if (qr_code_el) {
-        const qrcode = new QRCode(qr_code_el, {
-            text: {{.PublicLink }},
-    width: 220,
-        height: 220,
-            colorDark: '#000',
-                colorLight: '#fff',
-                    correctLevel: QRCode.CorrectLevel.M
-    });
+    const { createApp, onMounted } = Vue
 
-    }
-
-
-    const interval = setInterval(() => {
-        fetch("/api/active-token")
-            .then((r) => r.json())
-            .then(r => {
-                console.log("ret", r)
-                console.log("token_meta_id", token_meta_id)
-                if (r.active_token_meta_id != token_meta_id) {
-                    document.body.classList.remove('show')
-                    setTimeout(() => {
-                        window.location.href = `/?token_meta_id=${r.active_token_meta_id}`
-                    }, 500)
-                    clearInterval(interval)
-                }
+    createApp({
+        data() {
+            return {
+                plaque: null,
+                active_token_meta: null,
+                interval: null,
+                show_content: false,
+                qrcode: null
             }
-            ).catch(err => {
-                console.error(err)
-            })
-    }, 500)
+        },
+        computed: {
+            status() {
+                if (!this.active_token_meta) {
+                    return "loading"
+                }
+                return "plaque"
+            }
+        },
+        mounted() {
 
-    setTimeout(() => (document.body.classList.add('show')), 100);
+            this.interval = setInterval(() => {
+                this.getStatus();
+            }, 500)
+        },
+        methods: {
+            getStatus() {
+                fetch("/api/status")
+                    .then((r) => r.json())
+                    .then(plaque_status => {
+                        const plaque_equal = JSON.stringify(this.plaque) === JSON.stringify(plaque_status.plaque)
+                        const meta_equal = JSON.stringify(this.active_token_meta) === JSON.stringify(plaque_status.active_token_meta)
+                        if (!plaque_equal || !meta_equal) {
+                            this.show_content = false;
+                            setTimeout(() => {
+                                this.plaque = plaque_status.plaque;
+                                this.active_token_meta = plaque_status.active_token_meta
+                                this.updateQrCode()
+                                this.show_content = true;
+                            }, 500)
+                        }
+                    }
+                    ).catch(err => {
+                        console.error(err)
+                    })
+            },
+            updateQrCode() {
+                if (!this.qrcode) {
+                    const qr_code_el = document.getElementById('qrcode')
+                    if (!qr_code_el) {
+                        return
+                    }
+                    this.qrcode = new QRCode(qr_code_el, {
+                        text: "",
+                        width: 220,
+                        height: 220,
+                        colorDark: '#000',
+                        colorLight: '#fff',
+                        correctLevel: QRCode.CorrectLevel.M
+                    });
+                }
+                this.qrcode.makeCode(this.active_token_meta.token_meta.public_link)
+            }
+        }
+    }).mount('#app')
 </script>
 <style>
     html {
@@ -77,11 +121,15 @@
         margin: 0px;
         color: #FFFFFF;
         font-size: 18px;
+
+    }
+
+    .container {
         opacity: 0;
         transition: opacity 0.5s linear
     }
 
-    body.show {
+    .show {
         opacity: 1;
     }
 
@@ -121,5 +169,47 @@
         width: 200px;
         height: 200px;
 
+    }
+
+    .lds-ring {
+        display: inline-block;
+        position: relative;
+        width: 80px;
+        height: 80px;
+    }
+
+    .lds-ring div {
+        box-sizing: border-box;
+        display: block;
+        position: absolute;
+        width: 64px;
+        height: 64px;
+        margin: 3px;
+        border: 3px solid #fff;
+        border-radius: 50%;
+        animation: lds-ring 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+        border-color: #fff transparent transparent transparent;
+    }
+
+    .lds-ring div:nth-child(1) {
+        animation-delay: -0.45s;
+    }
+
+    .lds-ring div:nth-child(2) {
+        animation-delay: -0.3s;
+    }
+
+    .lds-ring div:nth-child(3) {
+        animation-delay: -0.15s;
+    }
+
+    @keyframes lds-ring {
+        0% {
+            transform: rotate(0deg);
+        }
+
+        100% {
+            transform: rotate(360deg);
+        }
     }
 </style>

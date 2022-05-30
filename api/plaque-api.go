@@ -3,11 +3,12 @@ package api
 import (
 	"encoding/json"
 	"fmt"
-	"html/template"
 	"io"
+	"jkurtz678/moda-viewer/fstore"
 	"jkurtz678/moda-viewer/viewer"
 	"log"
 	"net/http"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -28,67 +29,47 @@ func NewPlaqueAPIHandler(viewer *viewer.Viewer) *PlaqueAPIHandler {
 		Router:         httprouter.New(),
 	}
 	h.Router.GET("/", h.servePlaque)
-	h.Router.GET("/api/active-token", h.getActiveToken)
+	h.Router.GET("/api/status", h.getStatus)
 	return h
 }
 
 func (h *PlaqueAPIHandler) servePlaque(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
-	tmpl := template.Must(template.ParseFiles(h.PlaqueTemplate))
-
-	metaID := r.URL.Query().Get("token_meta_id")
-	if metaID == "" {
-		log.Printf("PlaqueAPIHandler.servePlaque - no token_media_id provided, loading active")
-		vlcMeta, err := h.getVLCMetaID()
-		if err != nil {
-			log.Printf("plaqueAPIHandler.servePlaque - getVLCMetaID error %v", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(fmt.Sprintf("internal error %s", err))
-			return
-		}
-		log.Printf("VLC META %s", vlcMeta)
-		metaID = vlcMeta
-	}
-	meta, err := h.Viewer.ReadMetadata(metaID)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(fmt.Sprintf("internal error %s", err))
-		return
-	}
-
-	log.Printf("executing template for token meta %+v", meta)
-	err = tmpl.Execute(w, meta.TokenMeta)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(fmt.Sprintf("internal error %s", err))
-		return
-	}
+	http.ServeFile(w, r, h.PlaqueTemplate)
 }
 
-func (h *PlaqueAPIHandler) getActiveToken(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
-	type ActiveTokenResp struct {
-		ActiveTokenMetaID string `json:"active_token_meta_id"`
+func (h *PlaqueAPIHandler) getStatus(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+	var PlaqueStatus struct {
+		Plaque          *fstore.FirestorePlaque    `json:"plaque"`
+		ActiveTokenMeta *fstore.FirestoreTokenMeta `json:"active_token_meta"`
 	}
 
-	activeTokenID, err := h.getVLCMetaID()
+	var err error
+	PlaqueStatus.Plaque, err = h.Viewer.ReadLocalPlaqueFile()
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(fmt.Sprintf("internal error %s", err))
+		log.Printf("PlaqueAPIHandler.getStatus - failed to get plaque data %v", err)
+		PlaqueStatus.ActiveTokenMeta = nil
+	}
+
+	PlaqueStatus.ActiveTokenMeta, err = h.getVLCMeta()
+	if err != nil {
+		log.Printf("PlaqueAPIHandler.getStatus - failed to get active token meta %v", err)
+		PlaqueStatus.ActiveTokenMeta = nil
 	}
 
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(ActiveTokenResp{ActiveTokenMetaID: activeTokenID}); err != nil {
+	if err := json.NewEncoder(w).Encode(PlaqueStatus); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(fmt.Sprintf("internal error %s", err))
 	}
 }
 
-func (h *PlaqueAPIHandler) getVLCMetaID() (string, error) {
-	log.Printf("PlaqueAPIHandler.getVLCMetaID")
+func (h *PlaqueAPIHandler) getVLCMeta() (*fstore.FirestoreTokenMeta, error) {
+	log.Printf("PlaqueAPIHandler.getVLCMeta")
 
-	req, err := http.NewRequest(http.MethodGet, "http://127.0.0.1:9090/requests/status.xml", http.NoBody)
+	req, err := http.NewRequest(http.MethodGet, "http://127.0.0.1:9090/requests/status.json", http.NoBody)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	req.SetBasicAuth("", "m0da")
@@ -96,31 +77,43 @@ func (h *PlaqueAPIHandler) getVLCMetaID() (string, error) {
 	client := http.Client{Timeout: 5 * time.Second}
 	res, err := client.Do(req)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	defer res.Body.Close()
 
 	resBody, err := io.ReadAll(res.Body)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	log.Printf("PlaqueAPIHandler.getVLCMetaID - resBody %s", resBody)
+	log.Printf("PlaqueAPIHandler.getVLCMeta - resBody %s", resBody)
 
-	firstSplit := strings.Split(string(resBody), "<info name='filename'>media\\")
-	if len(firstSplit) < 2 {
-		return "", fmt.Errorf("PlaqueAPIHandler.getVLCMetaID - failed to parse media filename")
+	var vlcStatus VLCStatus
+	err = json.Unmarshal(resBody, &vlcStatus)
+	if err != nil {
+		return nil, err
 	}
-	firstParse := firstSplit[1]
-	secondParse := strings.Split(firstParse, "</info>")[0]
-	mediaID := strings.Split(secondParse, ".")[0]
+	log.Printf("PlaqueAPIHandler.getVLCMeta - vlcUnmarshal %+v", vlcStatus)
+
+	filename := vlcStatus.Information.Category.Meta.Filename
+	mediaID := strings.TrimSuffix(filename, filepath.Ext(filename))
 
 	if mediaID == "" {
-		return "", fmt.Errorf("PlaqueAPIHandler.getVLCMetaID - empty media id")
+		return nil, fmt.Errorf("PlaqueAPIHandler.getVLCMeta - empty media id")
 	}
 
 	meta, err := h.Viewer.GetTokenMetaForMediaID(mediaID)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	return meta.DocumentID, nil
+	return meta, nil
+}
+
+type VLCStatus struct {
+	Information struct {
+		Category struct {
+			Meta struct {
+				Filename string `json:"filename"`
+			} `json:"meta"`
+		} `json:"category"`
+	} `json:"information"`
 }

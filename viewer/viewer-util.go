@@ -101,6 +101,7 @@ func (v *Viewer) ReadLocalPlaqueFile() (*fstore.FirestorePlaque, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer jsonFile.Close()
 
 	byteValue, err := ioutil.ReadAll(jsonFile)
 	if err != nil {
@@ -172,6 +173,7 @@ func (v *Viewer) ReadMetadata(documentID string) (*fstore.FirestoreTokenMeta, er
 	if err != nil {
 		return nil, err
 	}
+	defer jsonFile.Close()
 
 	byteValue, err := ioutil.ReadAll(jsonFile)
 	if err != nil {
