@@ -24,10 +24,13 @@
                 <div id="scan-qrcode" style="display: flex; justify-content: center;"></div>
                 <div style="margin-top: 10px; font-size: 30px;">Scan to cast art</div>
             </div>
+            <div v-show="status == 'no-tokens'">
+                <div style="font-size: 30px;">No art selected</div>
+            </div>
             <div v-show="status == 'plaque'">
                 <div class="title">{{active_token_meta?.token_meta?.name}}</div>
                 <div class="grid">
-                    <div class="col" style="max-width:650px;">
+                    <div class="col" style="max-width:650px; text-align: left;">
                         <div style="margin-bottom: 10px;">{{active_token_meta?.token_meta?.artist}}</div>
                         <div>{{active_token_meta?.token_meta?.description}}</div>
                     </div>
@@ -51,7 +54,7 @@
                 plaque: null,
                 active_token_meta: null,
                 interval: null,
-                show_content: true,
+                show_content: false,
                 plaque_qrcode: null,
                 scan_qrcode: null
             }
@@ -61,6 +64,9 @@
                 if (!this.plaque?.plaque?.account_id) {
                     return "scan"
                 }
+                if (this.plaque.plaque.token_meta_id_list == null || this.plaque.plaque.token_meta_id_list.length == 0) {
+                    return "no-tokens"
+                } 
                 if (!this.active_token_meta) {
                     return "loading"
                 }
