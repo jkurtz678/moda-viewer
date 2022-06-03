@@ -20,7 +20,7 @@
                     <div></div>
                 </div>
             </div>
-            <div v-show="status == 'scan'" >
+            <div v-show="status == 'scan'">
                 <div id="scan-qrcode" style="display: flex; justify-content: center;"></div>
                 <div style="margin-top: 10px; font-size: 30px;">Scan to cast art</div>
             </div>
@@ -58,11 +58,11 @@
         },
         computed: {
             status() {
-                if (!this.active_token_meta) {
-                    return "loading"
-                }
                 if (!this.plaque?.plaque?.account_id) {
                     return "scan"
+                }
+                if (!this.active_token_meta) {
+                    return "loading"
                 }
                 return "plaque"
             }
@@ -120,11 +120,11 @@
                     correctLevel: QRCode.CorrectLevel.M
                 });
             },
-            updateQrCode(status) {
-                if (status == 'plaque') {
+            updateQrCode() {
+                if (this.status == 'plaque') {
                     this.plaque_qrcode.makeCode(this.active_token_meta?.token_meta?.public_link)
                 }
-                if (status == 'scan') {
+                if (this.status == 'scan') {
                     this.scan_qrcode.makeCode(this.plaque?.document_id);
                 }
             }

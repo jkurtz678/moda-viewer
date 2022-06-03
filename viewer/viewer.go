@@ -3,7 +3,6 @@ package viewer
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"jkurtz678/moda-viewer/fstore"
 	"jkurtz678/moda-viewer/storage"
@@ -28,7 +27,8 @@ type Viewer struct {
 	MediaClient
 	videoplayer.VideoPlayer
 	webview.PlaqueManager
-	Active bool // plaque has started up and is playing media
+	Active   bool // plaque has started up and is playing media
+	TestMode bool // plaque will not block and listen for changes, instead will close after playing media
 }
 
 // NewViewer returns a new initialized viewer
@@ -70,8 +70,14 @@ func (v *Viewer) Startup() error {
 
 // LoadAndPlayTokens accepts a plaque, loads its associated media/metadata, and tells the video player to start playing this media
 func (v *Viewer) LoadAndPlayTokens(plaque *fstore.FirestorePlaque) error {
-	if len(plaque.Plaque.TokenMetaIDList) == 0 {
-		return fmt.Errorf("plaque has no assigned media")
+	logger.Printf("LoadAndPlayTokens")
+	// show moda logo if account_id is not set or no assigned tokens
+	if plaque.Plaque.AccountID == "" || len(plaque.Plaque.TokenMetaIDList) == 0 {
+		err := v.VideoPlayer.PlayFiles([]string{"moda-logo.png"})
+		if err != nil {
+			return err
+		}
+		return nil
 	}
 
 	logger.Printf("loading token metas...")
@@ -99,6 +105,12 @@ func (v *Viewer) LoadAndPlayTokens(plaque *fstore.FirestorePlaque) error {
 }
 
 func (v *Viewer) ListenForPlaqueChanges(plaque *fstore.FirestorePlaque) error {
+
+	if v.TestMode {
+		v.Active = true
+		return v.LoadAndPlayTokens(plaque)
+	}
+
 	logger.Printf("ListenForPlaqueChanges - listening to changes for plaque: %s", plaque.DocumentID)
 	err := v.DBClient.ListenPlaque(context.Background(), plaque.DocumentID, func(remotePlaque *fstore.FirestorePlaque) error {
 		// update local plaque file with changes

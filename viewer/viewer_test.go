@@ -30,6 +30,7 @@ func TestViewer(t *testing.T) {
 		testPlaque := fstore.FirestorePlaque{
 			DocumentID: "1",
 			Plaque: fstore.Plaque{Name: "test",
+				AccountID:       "test",
 				TokenMetaIDList: []string{"m1", "m2"},
 			},
 		}
@@ -136,11 +137,24 @@ func TestViewer(t *testing.T) {
 		plaqueStub := &webview.PlaqueManagerStub{}
 		v.VideoPlayer = playerStub
 		v.PlaqueManager = plaqueStub
+		v.TestMode = true // set test mode so viewer does not block
 
-		g.It("should error if no assigned media", func() {
-			err := v.Startup()
-			g.Assert(err).IsNotNil()
-			g.Assert(err.Error()).Equal("plaque has no assigned media")
+		g.It("should show moda logo if no account is assigned to plaque", func() {
+			playerStub.PlayFilesWaitGroup.Add(1) // ready player stub wait group
+			g.Assert(v.Startup()).IsNil()
+			g.Assert(playerStub.ActivePlaylistFilepaths).Equal([]string{"moda-logo.png"})
+		})
+
+		g.It("should show moda logo no tokens are selected", func() {
+			plaque, err := v.ReadLocalPlaqueFile()
+			g.Assert(err).IsNil()
+			err = v.DBClient.UpdatePlaque(ctx, plaque.DocumentID, []firestore.Update{
+				{Path: "account_id", Value: "test_account_id"},
+			})
+			g.Assert(err).IsNil()
+			playerStub.PlayFilesWaitGroup.Add(1) // ready player stub wait group
+			g.Assert(v.Startup()).IsNil()
+			g.Assert(playerStub.ActivePlaylistFilepaths).Equal([]string{"moda-logo.png"})
 		})
 
 		g.It("should load metas and media from firebase after assigning media", func() {
@@ -153,15 +167,15 @@ func TestViewer(t *testing.T) {
 			meta2, err := v.DBClient.CreateTokenMeta(ctx, &fstore.TokenMeta{Name: "a sunday on the la grande jatte", MediaID: "s2", MediaType: ".mp4"})
 			g.Assert(err).IsNil()
 
-			err = v.DBClient.UpdatePlaque(ctx, plaque.DocumentID, []firestore.Update{{Path: "token_meta_id_list", Value: []string{meta1.DocumentID, meta2.DocumentID}}})
+			// add account id so that scanning screen is not shown
+			// add token meta list so that plaque will play meta
+			err = v.DBClient.UpdatePlaque(ctx, plaque.DocumentID, []firestore.Update{
+				{Path: "token_meta_id_list", Value: []string{meta1.DocumentID, meta2.DocumentID}},
+			})
 			g.Assert(err).IsNil()
 
 			playerStub.PlayFilesWaitGroup.Add(1) // ready player stub wait group
-			// startup will block so start in own routine
-			go func() {
-				g.Assert(v.Startup()).IsNil()
-			}()
-			playerStub.PlayFilesWaitGroup.Wait() // block until player goroutine finishes
+			g.Assert(v.Startup()).IsNil()
 
 			// ensure metas are loaded
 			localMeta1, err := v.ReadMetadata(meta1.DocumentID)

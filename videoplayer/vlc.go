@@ -10,7 +10,6 @@ import (
 type VideoPlayer interface {
 	InitPlayer()
 	PlayFiles(filepaths []string) error
-	GetStatus() error
 }
 
 type VLCPlayer struct {
@@ -44,14 +43,4 @@ func (v *VLCPlayer) PlayFiles(filepaths []string) error {
 		}
 	}
 	return v.VLC.Play(1)
-}
-
-func (v *VLCPlayer) GetStatus() error {
-	status, err := v.VLC.GetStatus()
-	if err != nil {
-		return err
-	}
-	log.Printf("status: %+v", status)
-	log.Printf("information: %+v", status.Information)
-	return nil
 }
