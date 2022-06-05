@@ -35,7 +35,7 @@
                         <div>{{active_token_meta?.token_meta?.description}}</div>
                     </div>
                     <div class="col" style="display: flex; justify-content: center;">
-                        <div id="plaque-qrcode"></div>
+                        <div id="plaque-qrcode" style="border: 1px solid;"></div>
                     </div>
                 </div>
             </div>
@@ -131,7 +131,7 @@
                     this.plaque_qrcode.makeCode(this.active_token_meta?.token_meta?.public_link)
                 }
                 if (this.status == 'scan') {
-                    this.scan_qrcode.makeCode(this.plaque?.document_id);
+                    this.scan_qrcode.makeCode(`https://jkurtz678.github.io/moda-labs/#/home/plaque-list?plaque_id=${this.plaque?.document_id}`);
                 }
             }
         }
@@ -195,10 +195,11 @@
         padding: 0.5rem;
     }
 
-    #qrcode {
-        width: 200px;
-        height: 200px;
-
+    #scan-qrcode img {
+        border: 1px solid;
+    }
+    #plaque-qrcode img {
+        border: 1px solid;
     }
 
     .lds-ring {
