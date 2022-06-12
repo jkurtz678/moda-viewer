@@ -72,7 +72,7 @@ func (v *Viewer) Startup() error {
 func (v *Viewer) LoadAndPlayTokens(plaque *fstore.FirestorePlaque) error {
 	logger.Printf("LoadAndPlayTokens")
 	// show moda logo if account_id is not set or no assigned tokens
-	if plaque.Plaque.AccountID == "" || len(plaque.Plaque.TokenMetaIDList) == 0 {
+	if plaque.Plaque.WalletAddress == "" || len(plaque.Plaque.TokenMetaIDList) == 0 {
 		err := v.VideoPlayer.PlayFiles([]string{"moda-logo.png"})
 		if err != nil {
 			return err

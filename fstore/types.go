@@ -23,7 +23,7 @@ func (tm *FirestoreTokenMeta) MediaFileName() string {
 
 type Plaque struct {
 	Name            string   `json:"name" firestore:"name"`
-	AccountID       string   `json:"account_id" firestore:"account_id"`
+	WalletAddress   string   `json:"wallet_address" firestore:"wallet_address"`
 	TokenMetaIDList []string `json:"token_meta_id_list" firestore:"token_meta_id_list"` // list of token meta document ids which the plaque will display
 }
 

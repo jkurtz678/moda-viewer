@@ -30,7 +30,7 @@ func TestViewer(t *testing.T) {
 		testPlaque := fstore.FirestorePlaque{
 			DocumentID: "1",
 			Plaque: fstore.Plaque{Name: "test",
-				AccountID:       "test",
+				WalletAddress:   "test",
 				TokenMetaIDList: []string{"m1", "m2"},
 			},
 		}
