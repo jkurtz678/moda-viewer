@@ -61,7 +61,7 @@
         },
         computed: {
             status() {
-                if (!this.plaque?.plaque?.account_id) {
+                if (!this.plaque?.plaque?.wallet_address) {
                     return "scan"
                 }
                 if (this.plaque.plaque.token_meta_id_list == null || this.plaque.plaque.token_meta_id_list.length == 0) {
@@ -131,7 +131,7 @@
                     this.plaque_qrcode.makeCode(this.active_token_meta?.token_meta?.public_link)
                 }
                 if (this.status == 'scan') {
-                    this.scan_qrcode.makeCode(`https://jkurtz678.github.io/moda-labs/#/home/plaque-list?plaque_id=${this.plaque?.document_id}`);
+                    this.scan_qrcode.makeCode(`https://labs.modadisplay.art/#/home/plaque-list?plaque_id=${this.plaque?.document_id}`);
                 }
             }
         }

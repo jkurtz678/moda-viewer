@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"jkurtz678/moda-viewer/fstore"
+	"jkurtz678/moda-viewer/storage"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -71,7 +72,7 @@ func (v *Viewer) loadPlaqueData(ctx context.Context) (*fstore.FirestorePlaque, e
 	// retrieve remote plaque that matches local document id
 	remotePlaque, err := v.DBClient.GetPlaque(ctx, localPlaque.DocumentID)
 	if err != nil {
-		logger.Printf("loadPlaqueData failed to retrieve remote plaque: %+v", err)
+		logger.Printf("loadPlaqueData failed to retrieve remote plaque, using local data. Error: %+v", err)
 		// if we are offline, just return local plaque
 		return localPlaque, nil
 	}
@@ -118,6 +119,8 @@ func (v *Viewer) ReadLocalPlaqueFile() (*fstore.FirestorePlaque, error) {
 }
 
 // loadTokenMetas returns a list of token metas, loading from remote if online, returning local files if offline
+// will not return tokens if offline and the token is not found on local OR token is not found on remote
+// can only error if there are problems marshalling/writing json file which is unlikely
 func (v *Viewer) loadTokenMetas(ctx context.Context, plaque *fstore.FirestorePlaque) ([]*fstore.FirestoreTokenMeta, error) {
 	localMetas := make([]*fstore.FirestoreTokenMeta, 0)
 	for _, docID := range plaque.Plaque.TokenMetaIDList {
@@ -190,12 +193,42 @@ func (v *Viewer) ReadMetadata(documentID string) (*fstore.FirestoreTokenMeta, er
 }
 
 // loadMedia will download all media for metas, ensuring that all media files are ready for playback
-func (v *Viewer) loadMedia(ctx context.Context, metas []*fstore.FirestoreTokenMeta) error {
+func (v *Viewer) loadMedia(ctx context.Context, metas []*fstore.FirestoreTokenMeta) []*fstore.FirestoreTokenMeta {
+	validMetas := make([]*fstore.FirestoreTokenMeta, 0, len(metas))
 	for _, meta := range metas {
 		err := v.MediaClient.DownloadFile(meta.MediaFileName())
 		if err != nil {
-			return err
+			logger.Printf("loadMedia error - failed to load media for token %s", meta.DocumentID)
+			continue
 		}
+		// meta is valid if above did not error
+		validMetas = append(validMetas, meta)
 	}
-	return nil
+	return validMetas
+}
+
+// getValidTokens returns list of token metas that both exist locally and have a local media file
+func (v *Viewer) getValidTokens(tokenMetaIDList []string) []string {
+	validTokenList := make([]string, 0, len(tokenMetaIDList))
+	for _, tokenMetaID := range tokenMetaIDList {
+		tokenMeta, err := v.ReadMetadata(tokenMetaID)
+		if err != nil {
+			logger.Printf("getValidTokens invalid token metadata for token %s", tokenMetaID)
+			continue
+		}
+
+		localPath := filepath.Join(v.MediaDir, tokenMeta.MediaFileName())
+		exists, err := storage.FileExists(localPath)
+		if err != nil {
+			logger.Printf("getValidTokens failed to check local file %s for metadata %s with error %v", localPath, tokenMetaID, err)
+			continue
+		}
+
+		if !exists {
+			logger.Printf("getValidTokens failed to find local file %s for metadata %s", localPath, tokenMetaID)
+			continue
+		}
+		validTokenList = append(validTokenList, tokenMeta.DocumentID)
+	}
+	return validTokenList
 }

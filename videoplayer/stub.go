@@ -23,6 +23,10 @@ func (v *VideoPlayerStub) PlayFiles(filepaths []string) error {
 	return nil
 }
 
+func (v *VideoPlayerStub) GetStatus() (*VLCStatus, error) {
+	return nil, nil
+}
+
 func parsePlaylistFile(filepath string) ([]string, error) {
 	jsonFile, err := os.Open(filepath)
 	if err != nil {

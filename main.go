@@ -20,9 +20,8 @@ func main() {
 	viewer := viewer.NewViewer(fstoreClient, storageClient)
 	plaqueAPIHandler := api.NewPlaqueAPIHandler(viewer)
 	go func() {
-
-		log.Fatalln(http.ListenAndServe(":8080", plaqueAPIHandler))
+		log.Fatal(viewer.Startup())
 	}()
 
-	log.Fatal(viewer.Startup())
+	log.Fatal(http.ListenAndServe(":8080", plaqueAPIHandler))
 }

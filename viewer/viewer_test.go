@@ -125,7 +125,6 @@ func TestViewer(t *testing.T) {
 				filepaths = append(filepaths, url.QueryEscape(filepath.Join(v.MediaDir, m.MediaFileName())))
 			}
 			g.Assert(playerStub.ActivePlaylistFilepaths).Equal(filepaths)
-			g.Assert(v.Active).IsTrue()
 		})
 	})
 
@@ -149,7 +148,7 @@ func TestViewer(t *testing.T) {
 			plaque, err := v.ReadLocalPlaqueFile()
 			g.Assert(err).IsNil()
 			err = v.DBClient.UpdatePlaque(ctx, plaque.DocumentID, []firestore.Update{
-				{Path: "account_id", Value: "test_account_id"},
+				{Path: "wallet_address", Value: "test_account_id"},
 			})
 			g.Assert(err).IsNil()
 			playerStub.PlayFilesWaitGroup.Add(1) // ready player stub wait group
@@ -201,7 +200,6 @@ func TestViewer(t *testing.T) {
 				filepaths = append(filepaths, url.QueryEscape(filepath.Join(v.MediaDir, m.MediaFileName())))
 			}
 			g.Assert(playerStub.ActivePlaylistFilepaths).Equal(filepaths)
-			g.Assert(v.Active).IsTrue()
 		})
 	})
 
