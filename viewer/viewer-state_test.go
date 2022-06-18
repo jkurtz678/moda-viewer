@@ -91,7 +91,7 @@ func TestViewerState(t *testing.T) {
 			}
 
 			playerStub.PlayFilesWaitGroup.Add(1)
-			if test.blocking {
+			/* if test.blocking {
 				go func() {
 					a.NoError(viewer.Startup())
 				}()
@@ -100,7 +100,7 @@ func TestViewerState(t *testing.T) {
 				playerStub.PlayFilesWaitGroup.Wait()
 				test.asserts(viewer, nil)
 				return
-			}
+			} */
 			// otherwise viewer is expected to exit automatically
 			err := viewer.Startup()
 			test.asserts(viewer, err)
@@ -125,6 +125,7 @@ func ViewerTestSetup(tmpdir string) (*Viewer, *videoplayer.VideoPlayerStub, *web
 		MediaClient:   storageClientStub,
 		VideoPlayer:   playerStub,
 		PlaqueManager: plaqueStub,
+		TestMode:      true,
 	}
 	return v, playerStub, plaqueStub
 }

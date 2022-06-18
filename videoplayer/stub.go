@@ -20,6 +20,10 @@ func (v *VideoPlayerStub) InitPlayer() {
 func (v *VideoPlayerStub) PlayFiles(filepaths []string) error {
 	log.Printf("%+v", v.ActivePlaylistFilepaths)
 	v.ActivePlaylistFilepaths = filepaths
+
+	if len(filepaths) == 1 && filepaths[0] == "moda-logo.png" {
+		return nil
+	}
 	v.PlayFilesWaitGroup.Done()
 	return nil
 }

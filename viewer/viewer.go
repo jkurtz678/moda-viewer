@@ -168,28 +168,21 @@ func (v *Viewer) ListenForPlaqueChanges(plaque *fstore.FirestorePlaque) {
 func (v *Viewer) LoadAndPlayTokens(plaque *fstore.FirestorePlaque) error {
 	logger.Printf("LoadAndPlayTokens called")
 
-	// turn off loading whenever function returns
-	defer func() {
-
-	}()
+	// show moda logo during any file loading, and if errors are hit
+	err := v.VideoPlayer.PlayFiles([]string{"moda-logo.png"})
+	if err != nil {
+		return err
+	}
 
 	// show moda logo if account_id is not set or no assigned tokens
 	if plaque.Plaque.WalletAddress == "" {
 		logger.Printf("LoadAndPlayTokens no connected user, showing logo")
-		err := v.VideoPlayer.PlayFiles([]string{"moda-logo.png"})
-		if err != nil {
-			return err
-		}
 		return nil
 	}
 
 	// show moda logo if no tokens are assigned to plaque
 	if len(plaque.Plaque.TokenMetaIDList) == 0 {
 		logger.Printf("LoadAndPlayTokens plaque has %v tokens and 0 valid tokens, showing logo", len(plaque.Plaque.TokenMetaIDList))
-		err := v.VideoPlayer.PlayFiles([]string{"moda-logo.png"})
-		if err != nil {
-			return err
-		}
 		return nil
 	}
 

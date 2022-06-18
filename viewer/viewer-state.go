@@ -84,7 +84,11 @@ func (v *Viewer) getActivelyPlayingToken() (*fstore.FirestoreTokenMeta, error) {
 	mediaID := strings.TrimSuffix(filename, filepath.Ext(filename))
 
 	if mediaID == "" {
-		return nil, fmt.Errorf("PlaqueAPIHandler.getVLCMeta - empty media id")
+		return nil, fmt.Errorf("PlaqueAPIHandler.getActivelyPlayingToken - empty media id")
+	}
+
+	if mediaID == "moda-logo" {
+		return nil, fmt.Errorf("PlaqueAPIHandler.getActivelyPlayingToken - active token is moda logo, expected on loading")
 	}
 
 	meta, err := v.GetTokenMetaForMediaID(mediaID)
