@@ -6,57 +6,66 @@
     <title>MoDA Plaque</title>
     <script src="/ui/qrcode.min.js"></script>
     <script src="/ui/vue3.js"></script>
+    <script src="/ui/el-plus.js"></script>
+    <link rel="stylesheet" href="/ui/el-plus.css"></script>
 </head>
 
 <body>
-
-    <div id="app" class="center">
-        <div :class="show_content ? 'container show' : 'container'">
-            <div v-show="status == STATUS_LOADING">
-                <div class="lds-ring">
-                    <div></div>
-                    <div></div>
-                    <div></div>
-                    <div></div>
-                </div>
-                <div style="margin-top: 10px; font-size: 30px;">Preparing art</div>
-            </div>
-            <div v-show="status == STATUS_QR_SCAN">
-                <div id="scan-qrcode" style="display: flex; justify-content: center;"></div>
-                <div style="margin-top: 10px; font-size: 30px;">Scan to cast art</div>
-            </div>
-            <div v-show="status == STATUS_NO_VALID_TOKENS">
-                <div style="font-size: 30px;">No art selected</div>
-            </div>
-            <div v-show="status == STATUS_ERROR">
-                <div style="font-size: 30px;">Error loading art. Please try a different piece.</div>
-            </div>
-            <div v-show="status == STATUS_DISPLAY">
-                <div class="title">{{state_data.active_token_meta?.token_meta?.name}}</div>
-                <div class="grid">
-                    <div class="col" style="max-width:650px; text-align: left;">
-                        <div style="margin-bottom: 10px;">{{state_data.active_token_meta?.token_meta?.artist}}</div>
-                        <div>{{state_data.active_token_meta?.token_meta?.description}}</div>
+    <div id="app">
+        <div class="fullscreen-btn-container">
+            <el-button class="fullscreen-btn" text size="small" @click="toggleFullscreen" >fullscreen</el-button>
+        </div>
+        <Edit></Edit>
+        <div class="center">
+            <div :class="show_content ? 'container show' : 'container'">
+                <div v-show="status == STATUS_LOADING">
+                    <div class="lds-ring">
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                        <div></div>
                     </div>
-                    <div class="col" style="display: flex; justify-content: center;">
-                        <div id="plaque-qrcode"></div>
+                    <div style="margin-top: 10px; font-size: 30px;">Preparing art</div>
+                </div>
+                <div v-show="status == STATUS_QR_SCAN">
+                    <div id="scan-qrcode" style="display: flex; justify-content: center;"></div>
+                    <div style="margin-top: 10px; font-size: 30px;">Scan to cast art</div>
+                </div>
+                <div v-show="status == STATUS_NO_VALID_TOKENS">
+                    <div style="font-size: 30px;">No art selected</div>
+                </div>
+                <div v-show="status == STATUS_ERROR">
+                    <div style="font-size: 30px;">Error loading art. Please try a different piece.</div>
+                </div>
+                <div v-show="status == STATUS_DISPLAY">
+                    <div class="title">{{state_data.active_token_meta?.token_meta?.name}}</div>
+                    <div class="grid">
+                        <div class="col" style="max-width:650px; text-align: left;">
+                            <div style="margin-bottom: 10px;">{{state_data.active_token_meta?.token_meta?.artist}}</div>
+                            <div>{{state_data.active_token_meta?.token_meta?.description}}</div>
+                        </div>
+                        <div class="col" style="display: flex; justify-content: center;">
+                            <div id="plaque-qrcode"></div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-
+        <div style="position: fixed; bottom: 10px; right: 15px; font-style: italic; opacity: 0.7; font-size: 14px">
+            Powered by MoDA Labs
+        </div> 
     </div>
 </body>
 
 </html>
-<script>
+<script> 
     const { createApp, onMounted } = Vue
     const STATUS_LOADING = "loading"
     const STATUS_QR_SCAN = "qr_scan"
     const STATUS_NO_VALID_TOKENS = "no_valid_tokens"
     const STATUS_DISPLAY = "display"
     const STATUS_ERROR = "error"
-    createApp({
+    const app = createApp({
         data() {
             return {
                 state_data: {
@@ -140,9 +149,14 @@
                 if (this.status == STATUS_QR_SCAN) {
                     this.scan_qrcode.makeCode(`https://labs.modadisplay.art/#/home/plaque-list?plaque_id=${this.state_data.plaque?.document_id}`);
                 }
+            },
+            toggleFullscreen() {
+                window.pywebview.api.toggleFullscreen();
             }
         }
-    }).mount('#app')
+    })
+    app.use(ElementPlus) 
+    app.mount('#app')
 </script>
 <style>
     html {
@@ -204,6 +218,18 @@
 
     #scan-qrcode img {
         border: 1px solid;
+    }
+
+    .fullscreen-btn {
+        position: absolute; 
+        top: 5px; 
+        right: 5px;
+        opacity: 0;
+        transition: opacity 0.5s ease;
+    }
+
+    .fullscreen-btn:hover{
+        opacity: 1;
     }
 
     .lds-ring {

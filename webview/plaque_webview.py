@@ -2,10 +2,15 @@ import webview
 import sys
 import signal
 
+class Api():
+    def toggleFullscreen(self):
+        webview.windows[0].toggle_fullscreen()
+
 # allows keybaord interrupts to work
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 
 # run webview
 plaque_url = sys.argv[1]
-webview.create_window('MoDA Plaque', plaque_url)
+api = Api()
+webview.create_window('MoDA Plaque', plaque_url, js_api=api)
 webview.start(debug=True) 

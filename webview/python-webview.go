@@ -27,8 +27,6 @@ func (pw *PythonWebview) InitPlaque() {
 	// python3 does not exist, use python as argument
 	cmd := exec.Command("python", "webview/plaque_webview.py", "http://localhost:8080")
 	log.Fatalf("PythonWebview.InitPlaque() - error %v", cmd.Run())
-	return
-
 }
 
 /* func (pq *PythonWebview) navigateURL(tokenMetaID string) {
