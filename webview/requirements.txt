@@ -1,0 +1,6 @@
+cffi==1.15.0
+clr-loader==0.1.7
+proxy-tools==0.1.0
+pycparser==2.21
+pythonnet==3.0.0a2
+pywebview==3.6.3

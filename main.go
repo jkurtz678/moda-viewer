@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"jkurtz678/moda-viewer/api"
 	"jkurtz678/moda-viewer/fstore"
 	"jkurtz678/moda-viewer/storage"
@@ -13,21 +12,17 @@ import (
 )
 
 func main() {
-	serviceAccountKey := "./serviceAccountKey.json"
 
-	exists, err := storage.FileExists(serviceAccountKey)
+	//TODO decrypt gpg file
+
+	// install python dependencies
+	cmd := exec.Command("pip", "install", "-r", "webview/requirements.txt")
+	err := cmd.Run()
 	if err != nil {
-		log.Fatalf("FileExists serviceAccountKey.json check error - %v", err)
+		log.Fatalf("pip dependency install error - %v", err)
 	}
 
-	if !exists {
-		cmd := exec.Command("gpg", fmt.Sprintf("%s.gpg", serviceAccountKey))
-		err = cmd.Run()
-		if err != nil {
-			log.Fatalf("FileExists serviceAccountKey.json.gpg decryption err - %v", err)
-		}
-	}
-
+	serviceAccountKey := "./serviceAccountKey.json"
 	fstoreClient, err := fstore.NewFirestoreClient(context.Background(), serviceAccountKey)
 	if err != nil {
 		log.Fatalln(err)
