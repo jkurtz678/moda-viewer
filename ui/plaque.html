@@ -12,7 +12,7 @@
 
     <div id="app" class="center">
         <div :class="show_content ? 'container show' : 'container'">
-            <div v-show="status == 'loading'">
+            <div v-show="status == STATUS_LOADING">
                 <div class="lds-ring">
                     <div></div>
                     <div></div>
@@ -21,17 +21,17 @@
                 </div>
                 <div style="margin-top: 10px; font-size: 30px;">Preparing art</div>
             </div>
-            <div v-show="status == 'qr_scan'">
+            <div v-show="status == STATUS_QR_SCAN">
                 <div id="scan-qrcode" style="display: flex; justify-content: center;"></div>
                 <div style="margin-top: 10px; font-size: 30px;">Scan to cast art</div>
             </div>
-            <div v-show="status == 'no_valid_tokens'">
+            <div v-show="status == STATUS_NO_VALID_TOKENS">
                 <div style="font-size: 30px;">No art selected</div>
             </div>
-            <div v-show="status == 'error'">
+            <div v-show="status == STATUS_ERROR">
                 <div style="font-size: 30px;">Error loading art. Please try a different piece.</div>
             </div>
-            <div v-show="status == 'display'">
+            <div v-show="status == STATUS_DISPLAY">
                 <div class="title">{{state_data.active_token_meta?.token_meta?.name}}</div>
                 <div class="grid">
                     <div class="col" style="max-width:650px; text-align: left;">
@@ -51,19 +51,28 @@
 </html>
 <script>
     const { createApp, onMounted } = Vue
-
+    const STATUS_LOADING = "loading"
+    const STATUS_QR_SCAN = "qr_scan"
+    const STATUS_NO_VALID_TOKENS = "no_valid_tokens"
+    const STATUS_DISPLAY = "display"
+    const STATUS_ERROR = "error"
     createApp({
         data() {
             return {
                 state_data: {
-                    state: "loading",
+                    state: STATUS_LOADING,
                     plaque: null,
                     active_token_meta: null
                 },
                 interval: null,
                 show_content: false,
                 plaque_qrcode: null,
-                scan_qrcode: null
+                scan_qrcode: null,
+                STATUS_LOADING,
+                STATUS_QR_SCAN,
+                STATUS_NO_VALID_TOKENS,
+                STATUS_DISPLAY,
+                STATUS_ERROR
             }
         },
         computed: {
@@ -79,7 +88,7 @@
         },
         watch: {
             status(status) {
-                if (status == 'loading') {
+                if (status == STATUS_LOADING || STATUS_ERROR) {
                     return
                 }
                 this.updateQrCode(status)
@@ -125,10 +134,10 @@
                 });
             },
             updateQrCode() {
-                if (this.status == 'display') {
+                if (this.status == STATUS_DISPLAY) {
                     this.plaque_qrcode.makeCode(this.state_data.active_token_meta?.token_meta?.public_link)
                 }
-                if (this.status == 'qr_scan') {
+                if (this.status == STATUS_QR_SCAN) {
                     this.scan_qrcode.makeCode(`https://labs.modadisplay.art/#/home/plaque-list?plaque_id=${this.state_data.plaque?.document_id}`);
                 }
             }
