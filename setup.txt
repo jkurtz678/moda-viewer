@@ -3,9 +3,5 @@ gpg serviceAccountKey.json
 
 #turn off windows firewall
 
-#choco install 
-choco install mingw
-
 #set vlc to env path
 C:\Program Files\VideoLAN\VLC\
-
