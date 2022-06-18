@@ -33,7 +33,7 @@ func NewVLCPlayer() *VLCPlayer {
 
 func (v *VLCPlayer) InitPlayer() {
 	log.Println("VLCPlayer.InitPlayer() - running player")
-	cmd := exec.Command("vlc", "--loop", "--extraintf=http", "--http-port=9090", "--http-password=m0da", "--no-video-title")
+	cmd := exec.Command("vlc", "--loop", "--extraintf=http", "--http-port=9090", "--http-password=m0da", "--no-video-title", "--no-qt-fs-controller")
 	log.Fatalf("VLCPlayer.InitPlayer() - error %v", cmd.Run())
 }
 
