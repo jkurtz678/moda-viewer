@@ -21,7 +21,7 @@ const (
 type ViewerStateData struct {
 	State           ViewerState                `json:"state"`
 	Plaque          *fstore.FirestorePlaque    `json:"plaque"`
-	ActiveTokenMeta *fstore.FirestoreTokenMeta `json:"token_meta"`
+	ActiveTokenMeta *fstore.FirestoreTokenMeta `json:"active_token_meta"`
 }
 
 // GetViewerState
@@ -31,7 +31,7 @@ func (v *Viewer) GetViewerState() *ViewerStateData {
 	v.stateLock.Lock()
 	loadErr := v.loadErr
 	v.stateLock.Unlock()
-	if loadErr.Error() != "" {
+	if loadErr != nil {
 		return &ViewerStateData{State: ViewerStateError}
 	}
 
@@ -75,7 +75,6 @@ func (v *Viewer) GetViewerState() *ViewerStateData {
 
 // getActivelyPlayingToken will return actively playing token meta
 func (v *Viewer) getActivelyPlayingToken() (*fstore.FirestoreTokenMeta, error) {
-	logger.Printf("getActivelyPlayingToken")
 	playerStatus, err := v.VideoPlayer.GetStatus()
 	if err != nil {
 		return nil, err

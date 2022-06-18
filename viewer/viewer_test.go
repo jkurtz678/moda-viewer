@@ -199,6 +199,7 @@ func TestViewer(t *testing.T) {
 			for _, m := range metas {
 				filepaths = append(filepaths, url.QueryEscape(filepath.Join(v.MediaDir, m.MediaFileName())))
 			}
+
 			g.Assert(playerStub.ActivePlaylistFilepaths).Equal(filepaths)
 		})
 	})
@@ -333,7 +334,6 @@ func TestViewer(t *testing.T) {
 
 func NewTestViewer(tmpdir string) *Viewer {
 	configPath := filepath.Join(tmpdir, "config_test.json")
-	playlistPath := filepath.Join(tmpdir, "playlist_test.m3u")
 	playerStub := &videoplayer.VideoPlayerStub{}
 	plaqueStub := &webview.PlaqueManagerStub{}
 	fstoreClientStub := &fstore.FstoreClientStub{}
@@ -342,7 +342,6 @@ func NewTestViewer(tmpdir string) *Viewer {
 	}
 	return &Viewer{
 		PlaqueFile:    configPath,
-		PlaylistFile:  playlistPath,
 		MetadataDir:   tmpdir,
 		MediaDir:      tmpdir,
 		DBClient:      fstoreClientStub,

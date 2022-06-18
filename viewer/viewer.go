@@ -21,10 +21,9 @@ var logger = log.New(os.Stdout, "[viewer] - ", log.Ldate|log.Ltime|log.Lshortfil
 
 // Viewer is an object that displays media and plaque information
 type Viewer struct {
-	PlaqueFile   string
-	PlaylistFile string
-	MediaDir     string
-	MetadataDir  string
+	PlaqueFile  string
+	MediaDir    string
+	MetadataDir string
 	fstore.DBClient
 	MediaClient
 	videoplayer.VideoPlayer
@@ -41,7 +40,6 @@ type Viewer struct {
 func NewViewer(dbClient fstore.DBClient, storageClient *storage.FirebaseStorageClient) *Viewer {
 	return &Viewer{
 		PlaqueFile:    "plaque.json",
-		PlaylistFile:  "playlist.m3u",
 		MediaDir:      "media",
 		MetadataDir:   "metadata",
 		DBClient:      dbClient,

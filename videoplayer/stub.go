@@ -1,9 +1,9 @@
 package videoplayer
 
 import (
-	"io/ioutil"
-	"os"
-	"strings"
+	"log"
+	"net/url"
+	"path/filepath"
 	"sync"
 )
 
@@ -18,27 +18,29 @@ func (v *VideoPlayerStub) InitPlayer() {
 }
 
 func (v *VideoPlayerStub) PlayFiles(filepaths []string) error {
+	log.Printf("%+v", v.ActivePlaylistFilepaths)
 	v.ActivePlaylistFilepaths = filepaths
 	v.PlayFilesWaitGroup.Done()
 	return nil
 }
 
+// return ffirst filename in list, need to decode query string because we encode when sending to vlc
 func (v *VideoPlayerStub) GetStatus() (*VLCStatus, error) {
+	if len(v.ActivePlaylistFilepaths) > 0 {
+		unescape, err := url.QueryUnescape(v.ActivePlaylistFilepaths[0])
+		if err != nil {
+			return nil, err
+		}
+		filename := filepath.Base(unescape)
+		return &VLCStatus{
+			Information: Information{
+				Category{
+					Meta{
+						Filename: filename,
+					},
+				},
+			},
+		}, nil
+	}
 	return nil, nil
-}
-
-func parsePlaylistFile(filepath string) ([]string, error) {
-	jsonFile, err := os.Open(filepath)
-	if err != nil {
-		return nil, err
-	}
-	defer jsonFile.Close()
-
-	byteValue, err := ioutil.ReadAll(jsonFile)
-	if err != nil {
-		return nil, err
-	}
-
-	files := strings.Split(string(byteValue), "\n")
-	return files, nil
 }

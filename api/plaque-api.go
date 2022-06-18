@@ -35,7 +35,7 @@ func (h *PlaqueAPIHandler) servePlaque(w http.ResponseWriter, r *http.Request, p
 
 func (h *PlaqueAPIHandler) getStatus(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	stateData := h.Viewer.GetViewerState()
-	log.Printf("PlaqueAPIHandler.getStatus response - %+v", stateData)
+	log.Printf("PlaqueAPIHandler.getStatus state returned - %s", stateData.State)
 
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(http.StatusOK)

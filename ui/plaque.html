@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="utf-8">
-    <title>name</title>
+    <title>MoDA Plaque</title>
     <script src="/ui/qrcode.min.js"></script>
     <script src="/ui/vue3.js"></script>
 </head>
@@ -19,20 +19,24 @@
                     <div></div>
                     <div></div>
                 </div>
+                <div style="margin-top: 10px; font-size: 30px;">Preparing art</div>
             </div>
-            <div v-show="status == 'scan'">
+            <div v-show="status == 'qr_scan'">
                 <div id="scan-qrcode" style="display: flex; justify-content: center;"></div>
                 <div style="margin-top: 10px; font-size: 30px;">Scan to cast art</div>
             </div>
-            <div v-show="status == 'no-tokens'">
+            <div v-show="status == 'no_valid_tokens'">
                 <div style="font-size: 30px;">No art selected</div>
             </div>
-            <div v-show="status == 'plaque'">
-                <div class="title">{{active_token_meta?.token_meta?.name}}</div>
+            <div v-show="status == 'error'">
+                <div style="font-size: 30px;">Error loading art. Please try a different piece.</div>
+            </div>
+            <div v-show="status == 'display'">
+                <div class="title">{{state_data.active_token_meta?.token_meta?.name}}</div>
                 <div class="grid">
                     <div class="col" style="max-width:650px; text-align: left;">
-                        <div style="margin-bottom: 10px;">{{active_token_meta?.token_meta?.artist}}</div>
-                        <div>{{active_token_meta?.token_meta?.description}}</div>
+                        <div style="margin-bottom: 10px;">{{state_data.active_token_meta?.token_meta?.artist}}</div>
+                        <div>{{state_data.active_token_meta?.token_meta?.description}}</div>
                     </div>
                     <div class="col" style="display: flex; justify-content: center;">
                         <div id="plaque-qrcode"></div>
@@ -51,8 +55,11 @@
     createApp({
         data() {
             return {
-                plaque: null,
-                active_token_meta: null,
+                state_data: {
+                    state: "loading",
+                    plaque: null,
+                    active_token_meta: null
+                },
                 interval: null,
                 show_content: false,
                 plaque_qrcode: null,
@@ -61,16 +68,7 @@
         },
         computed: {
             status() {
-                if (!this.plaque?.plaque?.wallet_address) {
-                    return "scan"
-                }
-                if (this.plaque.plaque.token_meta_id_list == null || this.plaque.plaque.token_meta_id_list.length == 0) {
-                    return "no-tokens"
-                } 
-                if (!this.active_token_meta) {
-                    return "loading"
-                }
-                return "plaque"
+                return this.state_data.state
             }
         },
         mounted() {
@@ -91,14 +89,14 @@
             getStatus() {
                 fetch("/api/status")
                     .then((r) => r.json())
-                    .then(plaque_status => {
-                        const plaque_equal = JSON.stringify(this.plaque) === JSON.stringify(plaque_status.plaque)
-                        const meta_equal = JSON.stringify(this.active_token_meta) === JSON.stringify(plaque_status.active_token_meta)
-                        if (!plaque_equal || !meta_equal) {
-                            this.show_content = false;
+                    .then(state_data => {
+                        // if state_data has changed, we trigger a transition animation 
+                        const state_equal = JSON.stringify(this.state_data) === JSON.stringify(state_data)
+                        if (!state_equal) {
+                            this.show_content = false; // triggers fade-out
                             setTimeout(() => {
-                                this.plaque = plaque_status.plaque;
-                                this.active_token_meta = plaque_status.active_token_meta
+                                //fade in, update data
+                                this.state_data = state_data
                                 this.updateQrCode()
                                 this.show_content = true;
                             }, 500)
@@ -127,11 +125,11 @@
                 });
             },
             updateQrCode() {
-                if (this.status == 'plaque') {
-                    this.plaque_qrcode.makeCode(this.active_token_meta?.token_meta?.public_link)
+                if (this.status == 'display') {
+                    this.plaque_qrcode.makeCode(this.state_data.active_token_meta?.token_meta?.public_link)
                 }
-                if (this.status == 'scan') {
-                    this.scan_qrcode.makeCode(`https://labs.modadisplay.art/#/home/plaque-list?plaque_id=${this.plaque?.document_id}`);
+                if (this.status == 'qr_scan') {
+                    this.scan_qrcode.makeCode(`https://labs.modadisplay.art/#/home/plaque-list?plaque_id=${this.state_data.plaque?.document_id}`);
                 }
             }
         }

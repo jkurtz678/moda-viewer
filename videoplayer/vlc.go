@@ -57,13 +57,18 @@ func (v *VLCPlayer) PlayFiles(filepaths []string) error {
 }
 
 type VLCStatus struct {
-	Information struct {
-		Category struct {
-			Meta struct {
-				Filename string `json:"filename"`
-			} `json:"meta"`
-		} `json:"category"`
-	} `json:"information"`
+	Information Information `json:"information"`
+}
+
+type Information struct {
+	Category Category `json:"category"`
+}
+type Category struct {
+	Meta Meta `json:"meta"`
+}
+
+type Meta struct {
+	Filename string `json:"filename"`
 }
 
 // GetStatus returns status of vlc instance, such as actively playing file
