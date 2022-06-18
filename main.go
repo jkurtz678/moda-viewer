@@ -22,6 +22,17 @@ func main() {
 		log.Fatalf("pip dependency install error - %v", err)
 	}
 
+	// add vlc to path if not found
+	_, err = exec.LookPath("vlc")
+	if err != nil {
+		cmd := exec.Command("export", "PATH=/c/Program Files/VideoLan/VLC/:$PATH")
+		err := cmd.Run()
+		if err != nil {
+			log.Fatalf("main failed to add vlc to path")
+		}
+		log.Printf("VLC successfully added to path")
+	}
+
 	serviceAccountKey := "./serviceAccountKey.json"
 	fstoreClient, err := fstore.NewFirestoreClient(context.Background(), serviceAccountKey)
 	if err != nil {
