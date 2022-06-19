@@ -41,10 +41,10 @@
                     <div class="title">{{state_data.active_token_meta?.token_meta?.name}}</div>
                     <div class="grid">
                         <div class="col" style="max-width:650px; text-align: left;">
-                            <div style="margin-bottom: 10px;">{{state_data.active_token_meta?.token_meta?.artist}}</div>
+                            <div style="margin-bottom: 22px;">{{state_data.active_token_meta?.token_meta?.artist}}</div>
                             <div>{{state_data.active_token_meta?.token_meta?.description}}</div>
                         </div>
-                        <div class="col" style="display: flex; justify-content: center;">
+                        <div class="col" style="display: flex; justify-content: center; padding-top: 25px;">
                             <div id="plaque-qrcode"></div>
                         </div>
                     </div>
@@ -188,8 +188,8 @@
         position: absolute;
         top: 50%;
         left: 50%;
-        padding-left: 3.8rem;
-        padding-right: 3.8rem;
+        padding-left: 4rem;
+        padding-right: 4rem;
         -ms-transform: translate(-50%, -50%);
         transform: translate(-50%, -50%);
         text-align: left;
@@ -213,14 +213,14 @@
     .col {
         flex-grow: 1;
         flex-basis: 0;
-        padding: 0.5rem;
+        padding: 0.3rem 0.5rem 0.5rem 0.5rem;
     }
 
     #scan-qrcode img {
-        border: 1px solid;
+        border: 0.5px solid rgba(255, 255, 255, .5);
     }
     #plaque-qrcode img {
-        border: 1px solid;
+        border: 0.5px solid rgba(255, 255, 255, .5);
     }
 
     .fullscreen-btn {
