@@ -10,14 +10,11 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 )
 
-// MediaClient contains methods for managing media files videos/images/gifs
-type MediaClient interface {
-	DownloadFile(fileURI string) error
-}
+func (v *Viewer) GetTokenMetaForFileName(fileName string) (*fstore.FirestoreTokenMeta, error) {
 
-func (v *Viewer) GetTokenMetaForMediaID(mediaID string) (*fstore.FirestoreTokenMeta, error) {
 	plaque, err := v.ReadLocalPlaqueFile()
 	if err != nil {
 		return nil, err
@@ -28,7 +25,8 @@ func (v *Viewer) GetTokenMetaForMediaID(mediaID string) (*fstore.FirestoreTokenM
 		if err != nil {
 			return nil, err
 		}
-		if meta.TokenMeta.MediaID == mediaID {
+		// filename could be from media id or external url
+		if meta.TokenMeta.MediaID == strings.TrimSuffix(fileName, filepath.Ext(fileName)) || filepath.Base(meta.TokenMeta.ExternalMediaURL) == fileName {
 			return meta, nil
 		}
 	}
@@ -193,15 +191,28 @@ func (v *Viewer) ReadMetadata(documentID string) (*fstore.FirestoreTokenMeta, er
 }
 
 // loadMedia will download all media for metas, ensuring that all media files are ready for playback
+// first will try to load from archive, then from external sources
 func (v *Viewer) loadMedia(ctx context.Context, metas []*fstore.FirestoreTokenMeta) []*fstore.FirestoreTokenMeta {
 	validMetas := make([]*fstore.FirestoreTokenMeta, 0, len(metas))
 	for _, meta := range metas {
-		err := v.MediaClient.DownloadFile(meta.MediaFileName())
-		if err != nil {
-			logger.Printf("loadMedia error - failed to load media for token %s", meta.DocumentID)
+		if meta.TokenMeta.MediaID != "" {
+			err := v.MediaClient.DownloadFileFromArchive(meta.MediaFileName())
+			if err != nil {
+				logger.Printf("loadMedia error - failed to load archive media for token %s with file name %s", meta.DocumentID, meta.MediaFileName())
+				continue
+			}
+		} else if meta.TokenMeta.ExternalMediaURL != "" {
+			err := v.MediaClient.DownloadFileFromURL(meta.TokenMeta.ExternalMediaURL)
+			if err != nil {
+				logger.Printf("loadMedia error - failed to load external media for token %s with url path %s", meta.DocumentID, meta.TokenMeta.ExternalMediaURL)
+				continue
+			}
+		} else {
+			logger.Printf("loadMedia error - token has no valid media links %s", meta.DocumentID)
 			continue
 		}
-		// meta is valid if above did not error
+
+		// meta is valid if above media was found without error
 		validMetas = append(validMetas, meta)
 	}
 	return validMetas

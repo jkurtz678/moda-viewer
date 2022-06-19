@@ -25,7 +25,7 @@ type Viewer struct {
 	MediaDir    string
 	MetadataDir string
 	fstore.DBClient
-	MediaClient
+	storage.MediaClient
 	videoplayer.VideoPlayer
 	webview.PlaqueManager
 	TestMode bool // plaque will not block and listen for changes, instead will close after playing media

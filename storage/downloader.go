@@ -15,21 +15,39 @@ import (
 	"google.golang.org/api/option"
 )
 
+// MediaClient contains methods for managing media files videos/images/gifs
+type MediaClient interface {
+	DownloadFileFromArchive(fileURI string) error
+	DownloadFileFromURL(fileURL string) error
+}
+
 func (sc *FirebaseStorageClient) handleQueue() {
 	for fileURI := range sc.downloadQueue {
 		var err error
 		if strings.Contains(fileURI, "https://") {
-			err = sc.downloadFileFromURL(fileURI)
+			err = sc.DownloadFileFromURL(fileURI)
 		} else {
-			err = sc.DownloadFile(fileURI)
+			err = sc.DownloadFileFromArchive(fileURI)
 		}
 		if err != nil {
 			logger.Printf("error downloading file %+v", err)
 		}
 	}
 }
-func (sc *FirebaseStorageClient) downloadFileFromURL(fileURL string) error {
+func (sc *FirebaseStorageClient) DownloadFileFromURL(fileURL string) error {
 	logger.Printf("downloadFileFromURL - %s", fileURL)
+
+	// first check if file exists
+	localPath := filepath.Join(sc.mediaDir, filepath.Base(fileURL))
+	exists, err := FileExists(localPath)
+	if err != nil {
+		return fmt.Errorf("FirebaseStorageClient.DownloadFileFromURL - error checking file status %s", err)
+	}
+	if exists {
+		log.Print("FirebaseStorageClient.DownloadFileFromURL - File already exists, skipping download")
+		return nil
+	}
+
 	resp, err := http.Get(fileURL)
 	if err != nil {
 		return err
@@ -41,10 +59,6 @@ func (sc *FirebaseStorageClient) downloadFileFromURL(fileURL string) error {
 	if err != nil {
 		return fmt.Errorf("FirebaseStorageClient.performDownload - Failed to create media dir %s error %s", sc.mediaDir, err)
 	}
-
-	splitURL := strings.Split(fileURL, "/")
-	fileName := splitURL[len(splitURL)-1]
-	localPath := filepath.Join(sc.mediaDir, fileName)
 
 	// Create the file
 	out, err := os.Create(localPath)
@@ -58,25 +72,16 @@ func (sc *FirebaseStorageClient) downloadFileFromURL(fileURL string) error {
 	return err
 }
 
-func (sc *FirebaseStorageClient) DownloadFile(fileURI string) error {
+func (sc *FirebaseStorageClient) DownloadFileFromArchive(fileURI string) error {
 	localPath := filepath.Join(sc.mediaDir, fileURI)
 	logger.Printf("downloadFileFromFirebase – %s", fileURI)
 
-	exists, err := FileExists(localPath)
-	if err != nil {
-		return fmt.Errorf("FirebaseStorageClient.downloadFileFromFirebase - error checking file status %s", err)
-	}
-	if exists {
-		log.Print("FirebaseStorageClient.downloadFileFromFirebase - File already exists, skipping download")
-		return nil
-	}
-
 	data, err := sc.retrieveFileFromFirebase(fileURI)
 	if err != nil {
-		return fmt.Errorf("FirebaseStorageClient.downloadFileFromFirebase - retrieveFile %s error %s", fileURI, err)
+		return fmt.Errorf("FirebaseStorageClient.DownloadFileFromArchive - retrieveFile %s error %s", fileURI, err)
 	}
 
-	log.Println("FirebaseStorageClient.downloadFileFromFirebase - Writing file...")
+	log.Println("FirebaseStorageClient.DownloadFileFromArchive - Writing file...")
 
 	// create media dir if it does not exist, does nothing if already exists
 	err = os.MkdirAll(sc.mediaDir, os.ModePerm)

@@ -16,7 +16,7 @@ func TestTokenMeta(t *testing.T) {
 	g.Describe("fstore.TokenMeta", func() {
 		g.It("should create, retrieve, and update token metas", func() {
 			// create
-			tm := &TokenMeta{Name: "test"}
+			tm := &TokenMeta{Name: "test", ExternalMediaURL: "https://openseauserdata.com/files/ffce7a24a5f09148cbcde95264947ec5.mp4"}
 			ftm, err := client.CreateTokenMeta(ctx, tm)
 			g.Assert(err).IsNil()
 			g.Assert(ftm.DocumentID != "").IsTrue()
@@ -25,6 +25,7 @@ func TestTokenMeta(t *testing.T) {
 			ftm2, err := client.GetTokenMeta(ctx, ftm.DocumentID)
 			g.Assert(err).IsNil()
 			g.Assert(ftm2.DocumentID).Equal(ftm.DocumentID)
+			g.Assert(ftm2.TokenMeta.ExternalMediaURL).Equal(tm.ExternalMediaURL)
 
 			// update
 			g.Assert(client.UpdateTokenMeta(ctx, ftm2.DocumentID, []firestore.Update{{

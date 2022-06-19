@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os/exec"
+	"runtime"
 	"time"
 
 	vlcctrl "github.com/CedArctic/go-vlc-ctrl"
@@ -33,7 +34,13 @@ func NewVLCPlayer() *VLCPlayer {
 
 func (v *VLCPlayer) InitPlayer() {
 	log.Println("VLCPlayer.InitPlayer() - running player")
-	cmd := exec.Command("vlc", "--loop", "--extraintf=http", "--http-port=9090", "--http-password=m0da", "--no-video-title", "--no-qt-fs-controller")
+	log.Printf("runtime.GOOS %s", runtime.GOOS)
+	var cmd *exec.Cmd
+	if runtime.GOOS == "windows" {
+		cmd = exec.Command("vlc", "--loop", "--extraintf=http", "--http-port=9090", "--http-password=m0da", "--no-video-title", "--no-qt-fs-controller")
+	} else {
+		cmd = exec.Command("vlc", "--loop", "--extraintf=http", "--http-port=9090", "--http-password=m0da", "--no-video-title")
+	}
 	log.Fatalf("VLCPlayer.InitPlayer() - error %v", cmd.Run())
 }
 

@@ -3,8 +3,6 @@ package viewer
 import (
 	"fmt"
 	"jkurtz678/moda-viewer/fstore"
-	"path/filepath"
-	"strings"
 )
 
 // ViewerState is the current state of the viewer, corresponds to a different UI shown on the plaque
@@ -81,17 +79,16 @@ func (v *Viewer) getActivelyPlayingToken() (*fstore.FirestoreTokenMeta, error) {
 	}
 
 	filename := playerStatus.Information.Category.Meta.Filename
-	mediaID := strings.TrimSuffix(filename, filepath.Ext(filename))
 
-	if mediaID == "" {
+	if filename == "" {
 		return nil, fmt.Errorf("PlaqueAPIHandler.getActivelyPlayingToken - empty media id")
 	}
 
-	if mediaID == "moda-logo" {
+	if filename == "moda-logo.png" {
 		return nil, fmt.Errorf("PlaqueAPIHandler.getActivelyPlayingToken - active token is moda logo, expected on loading")
 	}
 
-	meta, err := v.GetTokenMetaForMediaID(mediaID)
+	meta, err := v.GetTokenMetaForFileName(filename)
 	if err != nil {
 		return nil, err
 	}

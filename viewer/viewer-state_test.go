@@ -6,6 +6,7 @@ import (
 	"jkurtz678/moda-viewer/storage"
 	"jkurtz678/moda-viewer/videoplayer"
 	"jkurtz678/moda-viewer/webview"
+	"net/url"
 	"path/filepath"
 	"testing"
 
@@ -73,6 +74,51 @@ func TestViewerState(t *testing.T) {
 			},
 			blocking: true,
 		},
+		{
+			name: "display-art-external", // user can download files from external url
+			setup: func(v *Viewer) {
+				p := SetupTestPlaqueData(t, v, false)
+				meta1, err := v.DBClient.CreateTokenMeta(ctx, &fstore.TokenMeta{Name: "opensea 1", ExternalMediaURL: "https://openseauserdata.com/files/ffce7a24a5f09148cbcde95264947ec5.mp4"})
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				meta2, err := v.DBClient.CreateTokenMeta(ctx, &fstore.TokenMeta{Name: "opensea 2", ExternalMediaURL: "https://lh3.googleusercontent.com/BBPu8rG0wo5_87hHUcpHdm6rp1ovA_TOpECQPtBf-30DOzR_G9ocUtvsapOegVa6TqtAhX7LK96P2ELUhTKyIiOd4hIqu1I38G34-iY"})
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				err = v.DBClient.UpdatePlaque(ctx, p.DocumentID, []firestore.Update{{Path: "token_meta_id_list", Value: []string{meta1.DocumentID, meta2.DocumentID}}})
+				if err != nil {
+					t.Fatal(err)
+				}
+			},
+			asserts: func(v *Viewer, err error) {
+				viewerStateData := v.GetViewerState()
+				a.Equal(ViewerStateDisplay, viewerStateData.State)
+				a.NotNil(viewerStateData.Plaque)
+				a.NotNil(viewerStateData.ActiveTokenMeta)
+				a.NoError(err)
+
+				p, err := v.loadPlaqueData(ctx)
+				a.NoError(err)
+
+				metas, err := v.loadTokenMetas(ctx, p)
+				a.NoError(err)
+				a.Len(metas, 2)
+
+				// get video player and ensure that locally playing file is correct
+				vlc := v.VideoPlayer.(*videoplayer.VideoPlayerStub)
+
+				filepaths := make([]string, 0)
+				for _, m := range metas {
+					filepaths = append(filepaths, url.QueryEscape(filepath.Join(v.MediaDir, m.MediaFileName())))
+				}
+				a.Equal(filepaths, vlc.ActivePlaylistFilepaths)
+
+			},
+			blocking: true,
+		},
 	}
 
 	for _, test := range testCases {
@@ -130,7 +176,7 @@ func ViewerTestSetup(tmpdir string) (*Viewer, *videoplayer.VideoPlayerStub, *web
 	return v, playerStub, plaqueStub
 }
 
-func SetupTestPlaqueData(t *testing.T, v *Viewer, metas bool) {
+func SetupTestPlaqueData(t *testing.T, v *Viewer, metas bool) *fstore.FirestorePlaque {
 	ctx := context.Background()
 	p, err := v.loadPlaqueData(ctx)
 	if err != nil {
@@ -157,5 +203,6 @@ func SetupTestPlaqueData(t *testing.T, v *Viewer, metas bool) {
 			t.Fatal(err)
 		}
 	}
+	return p
 
 }
