@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"jkurtz678/moda-viewer/viewer"
-	"log"
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
@@ -35,7 +34,7 @@ func (h *PlaqueAPIHandler) servePlaque(w http.ResponseWriter, r *http.Request, p
 
 func (h *PlaqueAPIHandler) getStatus(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	stateData := h.Viewer.GetViewerState()
-	log.Printf("PlaqueAPIHandler.getStatus state returned - %s", stateData.State)
+	//log.Printf("PlaqueAPIHandler.getStatus state returned - %s", stateData.State)
 
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(http.StatusOK)
