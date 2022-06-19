@@ -16,6 +16,7 @@ func main() {
 	//TODO decrypt gpg file
 
 	// install python dependencies
+	log.Printf("Checking python dependencies")
 	cmd := exec.Command("pip", "install", "-r", "webview/requirements.txt")
 	err := cmd.Run()
 	if err != nil {
@@ -23,14 +24,18 @@ func main() {
 	}
 
 	// add vlc to path if not found
+	log.Printf("Checking for VLC in path...")
 	_, err = exec.LookPath("vlc")
 	if err != nil {
+		log.Printf("VLC not found in path, attempting to add...")
 		cmd := exec.Command("export", `PATH=$PATH:"/C/Program Files/VideoLAN/VLC/"`)
 		err := cmd.Run()
 		if err != nil {
 			log.Fatalf("main failed to add vlc to path")
 		}
 		log.Printf("VLC successfully added to path")
+	} else {
+		log.Printf("VLC found in path")
 	}
 
 	serviceAccountKey := "./serviceAccountKey.json"
