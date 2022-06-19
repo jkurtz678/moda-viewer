@@ -76,6 +76,14 @@ func (sc *FirebaseStorageClient) DownloadFileFromArchive(fileURI string) error {
 	localPath := filepath.Join(sc.mediaDir, fileURI)
 	logger.Printf("downloadFileFromFirebase – %s", fileURI)
 
+	exists, err := FileExists(localPath)
+	if err != nil {
+		return fmt.Errorf("FirebaseStorageClient.downloadFileFromFirebase - error checking file status %s", err)
+	}
+	if exists {
+		log.Print("FirebaseStorageClient.downloadFileFromFirebase - File already exists, skipping download")
+		return nil
+	}
 	data, err := sc.retrieveFileFromFirebase(fileURI)
 	if err != nil {
 		return fmt.Errorf("FirebaseStorageClient.DownloadFileFromArchive - retrieveFile %s error %s", fileURI, err)
