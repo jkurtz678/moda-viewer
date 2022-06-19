@@ -25,7 +25,7 @@ func main() {
 	// add vlc to path if not found
 	_, err = exec.LookPath("vlc")
 	if err != nil {
-		cmd := exec.Command("export", "PATH=/c/Program Files/VideoLan/VLC/:$PATH")
+		cmd := exec.Command("export", `PATH=$PATH:"/C/Program Files/VideoLAN/VLC/"`)
 		err := cmd.Run()
 		if err != nil {
 			log.Fatalf("main failed to add vlc to path")
