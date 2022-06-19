@@ -1,9 +1,7 @@
 package main
 
 import (
-	"bytes"
 	"context"
-	"fmt"
 	"jkurtz678/moda-viewer/api"
 	"jkurtz678/moda-viewer/fstore"
 	"jkurtz678/moda-viewer/storage"
@@ -25,8 +23,8 @@ func main() {
 		log.Fatalf("pip dependency install error - %v", err)
 	}
 
-	// add vlc to path if not found
-	log.Printf("Checking for VLC in path...")
+	// add vlc to path if not found, currently not working
+	/* log.Printf("Checking for VLC in path...")
 	_, err = exec.LookPath("vlc")
 	if err != nil {
 		log.Printf("VLC not found in path, attempting to add...")
@@ -44,7 +42,7 @@ func main() {
 		log.Printf("VLC successfully added to path")
 	} else {
 		log.Printf("VLC found in path")
-	}
+	} */
 
 	serviceAccountKey := "./serviceAccountKey.json"
 	fstoreClient, err := fstore.NewFirestoreClient(context.Background(), serviceAccountKey)
