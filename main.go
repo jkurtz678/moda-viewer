@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"fmt"
 	"jkurtz678/moda-viewer/api"
 	"jkurtz678/moda-viewer/fstore"
 	"jkurtz678/moda-viewer/storage"
@@ -30,9 +32,14 @@ func main() {
 		log.Printf("VLC not found in path, attempting to add...")
 		//cmd := exec.Command("export", `PATH=$PATH:"/C/Program Files/VideoLAN/VLC/"`)
 		cmd := exec.Command("source", "videoplayer/vlc-path.sh")
+		var out bytes.Buffer
+		var stderr bytes.Buffer
+		cmd.Stdout = &out
+		cmd.Stderr = &stderr
 		err := cmd.Run()
 		if err != nil {
-			log.Fatalf("main failed to add vlc to path")
+			log.Fatalf("main failed to add vlc to path: %s - %v", fmt.Sprint(err), stderr.String())
+
 		}
 		log.Printf("VLC successfully added to path")
 	} else {
