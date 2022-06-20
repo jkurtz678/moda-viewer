@@ -1,16 +1,21 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"encoding/csv"
+	"encoding/json"
 	"flag"
+	"fmt"
 	"jkurtz678/moda-viewer/fstore"
 	"jkurtz678/moda-viewer/viewer"
 	"log"
 	"os"
 	"strings"
+	"time"
 
 	"cloud.google.com/go/firestore"
+	"google.golang.org/api/iterator"
 )
 
 var ctx = context.Background()
@@ -29,6 +34,8 @@ func main() {
 		nameLocalPlaque(*name)
 	case "assignArtist":
 		assignArtistToPlaque(*name)
+	case "backupTokenMetas":
+		backupTokenMetas()
 	case "parseCSV":
 		parseCSV(*name)
 	default:
@@ -161,4 +168,47 @@ func parseCSV(filename string) {
 	}
 
 	log.Printf("Successfully created %v token metas", len(metas))
+}
+
+func backupTokenMetas() {
+	ctx := context.Background()
+	client, err := fstore.NewFirestoreClient(ctx, "../serviceAccountKey.json")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	iter := client.Collection("token-meta").Documents(ctx)
+
+	file, err := os.OpenFile(fmt.Sprintf("backup-%s.json", time.Now().Format("20060102150405")), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		log.Fatalf("failed creating file: %s", err)
+	}
+	defer file.Close()
+	datawriter := bufio.NewWriter(file)
+	defer datawriter.Flush()
+	for {
+		snap, err := iter.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			log.Fatal(err)
+		}
+		tokenMeta := new(fstore.TokenMeta)
+		err = snap.DataTo(tokenMeta)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		marshalMeta, err := json.Marshal(tokenMeta)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		_, err = datawriter.WriteString(string(marshalMeta) + "\n")
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
 }
