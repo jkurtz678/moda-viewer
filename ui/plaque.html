@@ -45,7 +45,7 @@
                             <div>{{state_data.active_token_meta?.token_meta?.description}}</div>
                         </div>
                         <div class="col" style="display: flex; justify-content: center; padding-top: 25px;">
-                            <div id="plaque-qrcode"></div>
+                            <div v-show="state_data.active_token_meta?.token_meta?.public_link" id="plaque-qrcode"></div>
                         </div>
                     </div>
                 </div>
