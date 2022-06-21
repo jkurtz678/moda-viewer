@@ -117,6 +117,8 @@
                                 this.state_data = state_data
                                 this.updateQrCode()
                                 this.show_content = true;
+                                // set title to include plaque name
+                                window.pywebview.api.setTitle(`MoDA Plaque - ${state_data.plaque.plaque.name}`);
                             }, 500)
                         }
                     }
