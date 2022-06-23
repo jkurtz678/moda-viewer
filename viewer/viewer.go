@@ -115,9 +115,9 @@ func (v *Viewer) ListenForPlaqueChanges(plaque *fstore.FirestorePlaque) {
 		if err != nil {
 			return err
 		}
-		metasChanged := reflect.DeepEqual(localPlaque, remotePlaque)
-		walletAddressChanged := localPlaque.Plaque.WalletAddress == remotePlaque.Plaque.WalletAddress
-		if !metasChanged && !walletAddressChanged {
+		metasEqual := reflect.DeepEqual(localPlaque, remotePlaque)
+		walletAddressEqual := localPlaque.Plaque.WalletAddress == remotePlaque.Plaque.WalletAddress
+		if metasEqual && walletAddressEqual {
 			return nil
 		}
 
