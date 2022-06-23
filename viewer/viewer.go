@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"reflect"
 	"sync"
 	"time"
 )
@@ -106,21 +107,27 @@ func (v *Viewer) Startup() error {
 
 // ListenForPlaqueChanges will trigger
 func (v *Viewer) ListenForPlaqueChanges(plaque *fstore.FirestorePlaque) {
-	startListenTime := time.Now()
 	logger.Printf("ListenForPlaqueChanges - listening to changes for plaque: %s", plaque.DocumentID)
 	err := v.DBClient.ListenPlaque(context.Background(), plaque.DocumentID, func(remotePlaque *fstore.FirestorePlaque) error {
-		// if ListenPlaque has internet, it will immediately trigger the callback when first run we don't want, since the plaque is already running
-		// To fix this we skip this callback if it has been called within 5 seconds of listen start
-		if startListenTime.Add(time.Second * 5).After(time.Now()) {
+
+		// skip if no changes to wallet address
+		localPlaque, err := v.ReadLocalPlaqueFile()
+		if err != nil {
+			return err
+		}
+		metasChanged := reflect.DeepEqual(localPlaque, remotePlaque)
+		walletAddressChanged := localPlaque.Plaque.WalletAddress == remotePlaque.Plaque.WalletAddress
+		if !metasChanged && !walletAddressChanged {
 			return nil
 		}
+
 		v.stateLock.Lock()
 		v.loading = true
 		v.loadErr = nil
 		v.stateLock.Unlock()
 
 		// update local plaque file with changes and play new tokens
-		err := func() error {
+		err = func() error {
 			plaqueBytes, err := json.Marshal(remotePlaque)
 			if err != nil {
 				return err
